@@ -1,0 +1,43 @@
+\chapter{Language description}\label{language}
+
+The language implemented by the compiler is, at core, a subset of JavaScript with added type annotations and slightly modified semantics of arithmetic operations. This, in a way, makes it a slightly modified subset of TypeScript.
+
+The used version of JavaScript is standardized in the ECMAScript 2020 Language Specification\cite{ecma262}. This document serves as the primary reference for the language implemented by the compiler.
+
+TypeScript, on the other hand, does currently not have a formal standard and relies on an official implementation which serves as a reference. The last version which had a formal specification was version 1.8\cite{typescript18}. This version serves as a reference for the extended grammar and semantics of the language.
+
+While this chapter describes the full language we would like to implement, only a part of this language is supported by the compiler. The language features that are supported by the compiler are described in a later chapter.\todo{link}
+
+\section{Grammar}
+
+The language grammar extends the grammar defined in the ECMAScript 2020 Language Specification\cite{ecma262} by allowing writing of type annotations in function signatures and declarations of variables. A type annotation is defined by the following production:
+
+\begin{minted}{text}
+    TypeAnnotation -> Identifier
+\end{minted}
+
+
+\section{Language semantics}
+
+The semantics of the implemented language will be the same as described in the ECMAScript 2020 Language Specification\cite{ecma262} except for the cases described below\todo{TypeScript}.
+
+Because the values in JavaScript are untyped, many operations on them start with a type check and the selection of correct behavior of the operation. With statically typed variables, however, we can perform this selection at compile time and speed up the program execution. It is therefore advantageous to define these operations in such a way that the result type is always the same independently on the input values. We can also often replace the typical type union, which used to represent a JavaScript value, with the value itself.
+
+Because many microcontrollers do not have a 64-bit FPU\footnote{FPU: floating-point unit}, it is a good idea to avoid floating point operations. Unfortunately, in JavaScript, the number type is said to be an IEEE 754-2019 double precision float. Many interpreters, including QuickJS, use an integer type (typically a 32-bit int) to represent some values of the \texttt{number} type as an optimization, however, when the result of an operation does not fit in this type, the operands have to be promoted to a floating point number and the operation is performed in the floating point domain. This approach has two downsides:
+\begin{itemize}
+    \item every arithmetic operation needs an overflow check, and
+    \item the \texttt{number} type has to be a type union.
+\end{itemize}
+
+It is therefore a good idea to define a new primitive type \texttt{Int32} which guarantees that all arithmetic operations with two \texttt{Int32} operands will result in a new value of the same type. The \texttt{Int32} type can be used in any other context where the specification\todo{how to abbrev?} expects a value of the type \texttt{number}. In such cases, the value will behave the same as an equivalent value of the type \texttt{number}.
+
+\todo{implicit conversions on assignment}
+
+\todo{explicit conversions (not implemented yet)}
+
+\todo{linkage}
+
+
+\todo{TypeScript - types are not nullable}
+
+\section{Supported features}

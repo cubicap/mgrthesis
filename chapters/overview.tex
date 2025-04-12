@@ -1,0 +1,28 @@
+\chapter{Related projects}
+
+This chapter describes other projects used for the implementation of the proposed compiler. It also describes multiple small compiler backends which were considered as candidate options.
+
+\section{Jaculus}
+
+Jaculus is a platform for programming microcontrollers using JavaScript. It uses the QuickJS JavaScript engine. Jaculus' core library Jaculus-machine is of particular interest for this work, as the library is used for implementing the compiler. Jaculus-machine implements high-level C++ abstractions around QuickJS and implements some core features for the runtime.
+
+\section{QuickJS}
+
+QuickJS is a JavaScript engine. The version used in the current version of Jaculus-machine implements the ECMAScript 2020 Language Specification\cite{ecma262}.
+
+QuickJS is designed to have a small code and memory footprint, and to be easily embeddable in larger programs.
+
+QuickJS represents individual JavaScript values as a tagged type union.
+
+QuickJS uses reference counting for memory management.
+
+\todo{expand}
+
+
+\section{Compiler backends}
+
+\todo{write}
+
+\subsection{MIR}
+
+MIR is a small compiler backend designed for usage in JIT scenarios.

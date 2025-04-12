@@ -1,0 +1,13 @@
+\chapter{Motivation}
+
+JavaScript, as an interpreted language, suffers from the inherent flaw of slow execution speed. As we use JavaScript\todo{explain} for programming microcontrollers, we sometimes do encounter its performance as a limitation. The slow execution speed is the cost of the ease of use of JavaScript and, in a large part, stems from its dynamic nature and the difficulty to implement more advanced optimizations\todo{vs simple}.
+
+Because programming in dynamically typed languages can sometimes lead to errors that are difficult to debug, we usually do not write JavaScript directly. Instead, we usually write TypeScript and only before execution compile it to JavaScript.
+
+What is of particular interest, is the fact, that at the time of compilation to JavaScript, type annotations are removed from the input program, and some information about the input program is lost. This fact is unfortunate, because the type information could be used by the runtime environment to perform simple optimizations when loading the program.
+
+Therefore, we want to explore the possibility of using a slightly modified subset of TypeScript as the input of our runtime. We want to use the type information to identify segments of code that can be easily compiled to machine code and replace them with their machine code equivalent.
+
+\todo{requirements of the compiler? simplicity, resource constraints...}
+
+We believe, this will lead to a significant improvement in performance of some parts of such input programs that are written in a way, so they can benefit from this optimization.

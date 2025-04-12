@@ -1,6 +1,6 @@
 \chapter{Implementation}
 
-The whole translation pipeline consists of multiple subsequent stages. The input is the contents of a single TypeScript file, and the output is a runnable JavaScript code with stubs referring to generated native functions.
+The compilation pipeline consists of multiple stages. The input is the content of a single TypeScript file, and the output is runnable JavaScript code with stubs referring to generated native functions.
 
 
 \section{Parser}
@@ -37,104 +37,14 @@ Another case of left recursion in the grammar are the non-terminals \texttt{Memb
     CallExpression -> CallExpression TemplateLiteral
 \end{minted}
 
-The remaining left recursive expansions represent simple lists of items and can be, again, parsed iteratively. The corresponding non-terminal are: \texttt{FormalParameters}, \texttt{Expression} (comma separation), \texttt{LexicalDeclaration}, \texttt{VariableDeclaration}, \texttt{Arguments}, and \texttt{StatementList}.
+The remaining left recursive expansions represent simple lists of items and can be, again, parsed iteratively. The corresponding non-terminal are: \texttt{FormalParameters}, \texttt{Expression} (comma operator), \texttt{LexicalDeclaration}, \texttt{VariableDeclaration}, \texttt{Arguments}, and \texttt{StatementList}.
 
 After generating the AST, the top level statement list is traversed, and function declarations are selected for compilation. The "dependencies" of these functions are also checked to make sure that all function calls stay within the compiled context.
 
 
-\section{Intermediate Representation}
+\section{Generating the intermediate representation}
 
-Individual functions from the AST are further transformed into a high-level intermediate representation. The IR is designed to be independent of the used interpreter, platform and compiler backend.
-
-The intermediate representation represents a function in the form of a control-flow graph (CFG). A CFG typically consists of basic blocks which form small chunks of linear code. Each basic block ends with a terminator instruction which can either perform a (conditional) jump to a different basic block, or terminate the whole function. Together, basic blocks (nodes) with jump instructions (edges) form an oriented graph which represent all possible paths through the program.
-
-The IR uses an infinite amount of virtual registers, which can be used as operands in any statement. These will be referred to as \textit{IR registers}. IR registers should not be confused with machine registers, as they can hold different, in some cases complex, value types, which are only later mapped into memory or physical registers. IR registers are statically typed and can take on the types described in the following section\todo{link?}. Each register has a unique identifier represented by a numeric value.
-
-
-
-\subsection{IR Types}
-
-The types used by the IR are chosen as a middle point between JavaScript types and available native types. This allows some primitive types to be represented without the need of a "tag" to distinguish between different types available in JavaScript which can lead to a faster runtime performance and smaller memory usage. Some newly introduced primitive types can also provide faster implementation of, for example, arithmetic operations at the cost of not conforming with the ECMAScript specification. The specification of our implementation of JavaScript is described in a later section\todo{link our js specficiation}. The list of available types can be seen in Table \ref{tab:types}.
-
-\begin{table}
-    \centering
-    \begin{tabular}{l | l}
-        Type name   & Possible values                                                \\\hline
-        Void        & undefined                                                      \\
-        Int32       & Signed 32-bit integer number                                   \\
-        Float       & IEEE 754-2019 double-precission floating point number          \\
-        Bool        & true/false                                                     \\
-        Object      & Reference to a JavaScript Object (primitive type not allowed)  \\
-        StringConst & Reference to a "static" string value                           \\
-        String      & Reference to a reference-counted string value                  \\
-        Any         & Union of any JavaScript type
-    \end{tabular}
-    \caption{Possible types of Temporary variables}
-    \label{tab:types}
-\end{table}
-
-
-\subsection{IR Instructions}
-
-IR instructions represent simple operations and may have different variants based on types of their operands. These operations correspond to different operations from the modified JavaScript as described in a later section\todo{link our js specficiation}. There are four kinds of instructions:
-
-
-\texttt{Instruction}\todo{rename?} represents a simple instruction with up to three operands (typically 2 inputs and 1 output) and may perform different operations based on their argument types. All operands must be IR registers or ignored a by given instruction.
-
-\texttt{ConstInit} performs a constant initialization of an IR register. They only have two operands - an IR register, and a constant value. The types of these values correspond to primitive value literals - i.e., Bool, Int32, Float, StringConst.
-
-\texttt{Call} represents a function call. These can have a variable number of parameters and can describe a "native function call" or "JavaScript function call". All operands representing arguments and return target must be IR registers. The call target may either be a string identifier of a native function, or an IR register containing a function object\todo{not implemented}.
-
-\texttt{Terminator} terminates a basic block. They can be used to describe control flow.
-
-
-\begin{table}
-    \centering
-    \begin{tabular}{l | l}
-        Opcode      & Signature \texttt{(a b -> res)}                                                   \\\hline
-        Add         & \texttt{a      a     -> a                                                       } \\
-        Sub         & \texttt{a      a     -> a                                                       } \\
-        Mul         & \texttt{a      a     -> a                                                       } \\
-        Div         & \texttt{a      a     -> a                                                       } \\
-        Rem         & \texttt{a      a     -> a                                                       } \\
-        Pow         & \texttt{a      a     -> a                                                       } \\
-        LShift      & \texttt{Int32  Int32 -> Int32                                                   } \\
-        RShift      & \texttt{Int32  Int32 -> Int32                                                   } \\
-        URShift     & \texttt{Int32  Int32 -> Int32                                                   } \\
-        BitAnd      & \texttt{Int32  Int32 -> Int32                                                   } \\
-        BitOr       & \texttt{Int32  Int32 -> Int32                                                   } \\
-        BitXor      & \texttt{Int32  Int32 -> Int32                                                   } \\
-        Eq          & \texttt{a      a     -> Bool                                                    } \\
-        Neq         & \texttt{a      a     -> Bool                                                    } \\
-        Gt          & \texttt{a      a     -> Bool                                                    } \\
-        Gte         & \texttt{a      a     -> Bool                                                    } \\
-        Lt          & \texttt{a      a     -> Bool                                                    } \\
-        Lte         & \texttt{a      a     -> Bool                                                    } \\
-        GetMember   & \texttt{parent id    -> Any     }\\
-                    & \texttt{(id: StringConst | Int32, parent: Object | Any) } \\
-        SetMember   & \texttt{id     val   -> parent  }\\
-                    & \texttt{(id: StringConst | Int32, parent: Object | Any) } \\
-        Set         & \texttt{a      void  -> b                                                       } \\
-        BoolNot     & \texttt{a      void  -> Bool                                                    } \\
-        BitNot      & \texttt{Int32  void  -> Int32                                                   } \\
-        UnPlus      & \texttt{a      void  -> Number                                                  } \\
-        UnMinus     & \texttt{a      void  -> a                                                       } \\
-        Dup         & \texttt{a      void  -> void                                                    } \\
-        PushFree    & \texttt{a      void  -> void                                                    }
-    \end{tabular}
-    \caption{Table: List of IR instructions. Most instructions have three operands - two inputs and one output. Therefore, the three operands are denoted as \texttt{a b -> res}. For unary expressions, the \texttt{b} operand type is written as \texttt{void}, as it is ignored. A large exception to this rule is the \texttt{SetMember} operation with 3 input operands but for the sake of consistency, it is described in the same form. The signatures of these operations are described using generic types to show their possible overloads.}
-    \label{tab:opcodes}
-\end{table}
-
-
-The arithmetic Operations do not follow JavaScript's semantics of arithmetic operations. Instead, they represent the operations as provided by a traditional CPU (e.g., integer addition with overflow). This leads to non-compliance with the JavaScript specification but can lead to a faster machine code, which may be crucial in restricted environments. To
-
-The instructions \texttt{Dup} and \texttt{PushFree} are used for updating the reference counts of JavaScript values. To simplify the process, a secondary, "cleanup", stack is used at runtime. The \texttt{Dup} instruction immediately increments the reference count of a value, whereas the \texttt{PushFree} instruction only pushes the value to the "cleanup" stack, which is used in function's epilogue to decrease the reference counts of all values used during it runtime. To create an equivalent machine code, numeric values should be represented as \texttt{Float}, or \texttt{Any}\todo{not implemented}\footnote{The performance of arithmetic operations on different types may vary depending on the target CPU - for example, on a 32-bit CPU without 64-bit float acceleration, work with small integer values will be significantly faster when the \texttt{Any} type is used.}.
-
-
-\section{Generation of the intermediate representation}
-
-Every CFG function then consists of two parts: signature and a function body. First, all function signatures are saved so that the generator knows which functions are to be compiled and can insert native calls in relevant places. Then, the function bodies processed independently on a per-function basis. Lastly, functions that failed to compile and functions that require this function (by calling it) are removed and not processed further.
+Every AST function consists of two parts: a signature and a body. First, all function signatures are saved so that the generator knows which functions are to be compiled and can insert native calls in relevant places. Then, the function bodies processed independently on a per-function basis. Lastly, functions that failed to compile and functions that require this function (by calling it) are removed and not processed further.
 
 The statements in the function body are recursively traversed by the compiler and the AST is transformed into the intermediate representation described in the previous section.
 
@@ -152,32 +62,35 @@ Because some AST nodes may result in different value types depending on the whol
 
 Sometimes, the final value type of evaluated sub-node can be incompatible with what the parent node expects. In these cases, a syntax error is encountered and the compilation fails.
 
-When a value is saved into a temporary variable, its reference count needs to be updated. This operation is implemented by a \texttt{Dup} instruction which is emitted. The reference count needs to be decreased after the value is no longer needed. To avoid analyzing the code and finding the correct places to perform this task, the value is saved using the \texttt{PushFree} instruction and the reference count is decreased before returning from the function.
+When a value is saved into an IR register, its reference count needs to be updated. This operation is implemented by a \texttt{Dup} instruction which is emitted. The reference count needs to be decreased after the value is no longer needed. To avoid analyzing the code and finding the correct places to perform this task, the value is saved using the \texttt{PushFree} instruction and the reference count is decreased before returning from the function.
 
-The process of generating the IR code itself can be viewed as two simple cases - linear code, ang branching code. Generating linear code is trivial, as the respective AST nodes are simply replaced by their counterparts consisting of the IR instructions. These can be directly emitted to the currently active basic block.
+The process of generating the IR code itself can be viewed as two simple cases - linear code, ang branching code. Generating linear code is trivial, as the respective AST nodes are simply replaced by their counterparts consisting of the IR instructions. These can be directly emitted to the currently active basic block. The linear case is illustrated in
 
-When generating branching code, the active basic block is essentially split into two parts - a "pre-" block and a "post-" block. The branching code is then emitted into the "pre-" block and some newly created blocks. All the emitted branches join again in the "post-" block (aside from branches, that terminate).
+When generating branching code, the active basic block has to be split into two parts - entry, and exit. The entry block will contain the original code without the terminator instruction (which will be replaced) while the exit block will retain only the terminator instruction. The branching code can be then simply emitted into the entry block and a number of newly emitted block for all new paths. Paths that do not terminate, or contain non-linear\todo{check} control flow (i.e., \texttt{break} or \texttt{continue} statements) must all converge to the exit block.
 
+\subsection{Examples of IR generation}
 
-\subsection{Memory structure of IR function}
+\todo{show the IR-gen of some significant AST nodes - linear expression, if, for, short-circuit expression, terminating statement}
 
-\todo{}
+\subsection{Runtime requirements of IR function}\todo{find a better title}\label{subsec:irruntime}
+
+There are very few requirements on how a function represented by the intermediate representation should perform. The values in IR registers can be stored in any way, be it in registers, in stack memory, or in some entirely different way. There is also no calling convention.
+
+A function in the IR requires access to the instance of the JavaScript interpreter it runs under. To implement the \texttt{PushFree} instruction, it also needs a secondary stack (or another container) for storing all values that need to be freed.
 
 
 \subsection{IR interpreter}
 
-An interpreter for the intermediate representation is available as a part of the test suite to allow for testing the generated IR without compiling it to the native code. It allows for catching IR generation errors early and avoiding the debugging of the final machine code. The interpreter works directly with the immediate variables and keeps track of their types during the runtime.
+An interpreter for the intermediate representation is available as a part of the test suite to allow for testing of the generated IR without compiling it to the native code. It allows for catching IR generation errors early and for avoiding the debugging of the final machine code. The interpreter works directly with the immediate variables and keeps track of their types and reference counts\todo{extend for primitives} during the runtime.
 
 
 \section{Compiler backend}
 
-The compiler relies on MIR compiler backend to perform code register allocation, code generation, and optimization of the machine code. MIR generates functions with a standard calling convention. This calling convention, however, is not compatible with the signature of functions expected by QuickJS. Therefore, for every compiled function, a companion function with a compatible interface is generated.
+The compiler relies on the MIR compiler backend to perform register allocation, code generation, and optimization of the machine code. MIR generates functions with a standard calling convention for a target platform. This calling convention, however, is not compatible with the signature of functions expected by QuickJS. Therefore, for every compiled function, a companion function with a compatible interface is generated.
 
-The MIR code is generated by simply replacing parts of the IR with the respective MIR representation. Some simple instructions can be replaced by a single instruction in MIR, some more complex are replaced by a function call.
+The MIR code is generated by simply replacing parts of the IR with the respective MIR representation. Some simple instructions can be replaced by a single MIR instruction, some more complex are replaced by multiple MIR instructions or a function call.
 
-The compiled functions require additional context for their runtime. For this reason, the MIR code contains a global pointer, which contains the address to a structure with the needed global context.
-
-The global context primarily contains a reference to the respective instance of the JavaScript interpreter. It also stores the secondary stack used by the \texttt{PushFree} instruction. Lastly, it holds the values of all string constants used by the compiled functions.
+The final, native, functions require a runtime context, as described in Section \ref{subsec:irruntime}. The context primarily contains a pointer to an instance of the JavaScript interpreter. It also contains a secondary stack used by the \texttt{PushFree} instruction. Lastly, it holds the values of all string constants used by the compiled functions. As the compiled functions exist only in the context of a single JavaScript interpreter, all functions use the same global context through a global constant pointer that is linked to them.
 
 
 \section{Stubs}
@@ -190,3 +103,7 @@ Because the functions are statically linked to each other, instead of using a ho
 \section{Interpreter}
 
 The underlying interpreter is unmodified QuickJS with Jaculus-machine abstraction layer.
+
+\section{Integration with Jaculus-machine}
+
+\todo{write}

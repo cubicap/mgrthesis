@@ -55,7 +55,7 @@
 }
 
 \usepackage[backend=bibtex8,
-            sortlocale=cs_CZ, % XXX
+            sortlocale=en_US, % XXX
             bibencoding=UTF8
             maxnames=100
            ]{biblatex}
@@ -84,8 +84,16 @@
 \pagestyle{plain}
 
 \mainmatter
-% XXX: Organise your chapters however the fuck you like
+
+\input{chapters/motivation}
+\input{chapters/overview}
+\input{chapters/language}
+\input{chapters/ir}
 \input{chapters/implementation}
+\input{chapters/evaluation}
+\input{chapters/limitations}
+\input{chapters/future}
+\input{chapters/conclusion}
 
 \backmatter
 \chapter{Literature}
