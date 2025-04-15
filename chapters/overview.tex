@@ -12,9 +12,9 @@ QuickJS is a JavaScript engine. The version used in the current version of Jacul
 
 QuickJS is designed to have a small code and memory footprint, and to be easily embeddable in larger programs.
 
-QuickJS represents individual JavaScript values as a tagged type union.
+QuickJS uses a stack-based bytecode machine. Values in JavaScript have a dynamic type, which may fall in several categories. In QuickJS, values are represented using a tagged union - a structure with two 64-bit values representing the tag and a corresponding value.
 
-QuickJS uses reference counting for memory management.
+Some primitive values are placed directly into this structure while others are allocated on the heap and the structure only contains a pointer to the value. Values which require memory allocation use reference counting with cycle detection for memory management.
 
 \todo{expand}
 

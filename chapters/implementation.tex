@@ -79,11 +79,6 @@ There are very few requirements on how a function represented by the intermediat
 A function in the IR requires access to the instance of the JavaScript interpreter it runs under. To implement the \texttt{PushFree} instruction, it also needs a secondary stack (or another container) for storing all values that need to be freed.
 
 
-\subsection{IR interpreter}
-
-An interpreter for the intermediate representation is available as a part of the test suite to allow for testing of the generated IR without compiling it to the native code. It allows for catching IR generation errors early and for avoiding the debugging of the final machine code. The interpreter works directly with the immediate variables and keeps track of their types and reference counts\todo{extend for primitives} during the runtime.
-
-
 \section{Compiler backend}
 
 The compiler relies on the MIR compiler backend to perform register allocation, code generation, and optimization of the machine code. MIR generates functions with a standard calling convention for a target platform. This calling convention, however, is not compatible with the signature of functions expected by QuickJS. Therefore, for every compiled function, a companion function with a compatible interface is generated.

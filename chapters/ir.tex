@@ -17,13 +17,17 @@ The virtual machine consists of:
     \item a reference to a JavaScript virtual machine instance.
 \end{itemize}
 
-The virtual machine can execute a single function with arguments given. Each step of the execution performs a single instruction at the position of the instruction pointer and updates the instruction pointer accordingly. A \texttt{Call} instruction is not processed by the same machine. Instead, the virtual machine is paused until the call is finished by the correct means (native call, in a new virtual machine).
+The virtual machine can execute a single function with the given call arguments. Each step of the execution performs a single instruction at the position of the instruction pointer and updates the instruction pointer accordingly. A \texttt{Call} instruction is not processed by the same machine. Instead, the virtual machine is paused until the call is finished by the correct means (e.g., as a native call, in a new virtual machine).
 
 To simplify the process of generating the IR, the virtual machine uses an unlimited number of virtual registers. These will be referred to as \textit{IR registers}. IR registers should not be confused with machine registers, as they can hold different, in some cases complex, value types, which are only later mapped into the physical memory or registers. IR registers are statically typed and can take on the types described in Section \ref{ir:types}. Each register has a unique identifier represented by a numeric value.
 
 A cleanup stack is a piece of memory which allows the program to simplify the management of value ownership. When the reference count of a value should be reduced, it is not done directly because more complex analysis of the usage of the value would be necessary. Instead, the value is placed onto the cleanup stack and its reference count is reduced at the exit of the function.
 
-Some instructions need to interact with the underlying JavaScript virtual machine to perform the operation which they represent. A reference to the JavaScript virtual machine must be therefore accessible.
+Some instructions need to interact with the underlying JavaScript virtual machine to perform the operation which they represent. A reference to the JavaScript virtual machine must be therefore accessible. The model does not specify how the JS VM will be available, but two possible approaches would be:
+\begin{itemize}
+    \item a constant in static memory - a function is bound to a JS VM at compile time, or
+    \item through a function parameter - a function may be shared with multiple JS VMs.
+\end{itemize}
 
 
 \section{IR Types}\label{ir:types}
@@ -90,13 +94,13 @@ IR instructions represent simple operations and may have different variants base
         \texttt{SetMember}   & \texttt{id     a     -> parent   } &  Set member                 \\
                              & \texttt{id = StringConst | Int32 } &                             \\
                              & \texttt{parent = Object | Any    } &                             \\
-        \texttt{Set}         & \texttt{a      \_    -> b        } &  Set register               \\
+        \texttt{Set}         & \texttt{a      \_    -> b        } &  Set IR register, convert   \\
         \texttt{BoolNot}     & \texttt{a      \_    -> Bool     } &  Logical negation           \\
         \texttt{BitNot}      & \texttt{Int32  \_    -> Int32    } &  Bitwise negation           \\
         \texttt{UnPlus}      & \texttt{a      \_    -> Number   } &  Unary plus                 \\
         \texttt{UnMinus}     & \texttt{a      \_    -> a        } &  Unary minus                \\
         \texttt{Dup}         & \texttt{a      \_    -> \_       } &  Increment reference count  \\
-        \texttt{PushFree}    & \texttt{a      \_    -> \_       } &  Push to the cleanup stack          \\
+        \texttt{PushFree}    & \texttt{a      \_    -> \_       } &  Push to the cleanup stack  \\
     \end{tabular}
     \caption{Table: List of Operations. The column signature shows the possible types of IR registers used as operands. Most Operations have three operands - two inputs and one output. Therefore, the three operands are denoted as \texttt{a b -> res}. Type placeholders are used to show all possible overloaded variants of a given Operation. The placeholder \texttt{\_} describes an unused operand. The syntax \texttt{id = StringConst | Int32} describes a type alias \texttt{id} which can take on the listed types (\texttt{StringConst} or \texttt{Int32}). }
     \label{tab:opcodes}
@@ -104,8 +108,15 @@ IR instructions represent simple operations and may have different variants base
 
 The arithmetic Operations implement the operations as described in Chapter \ref{language}.
 
-The Operations \texttt{Dup} and \texttt{PushFree} are used for updating the reference counts\footnotemark[1] of JavaScript values. To simplify the process of decreasing the reference counts, a cleanup stack is used at runtime. The \texttt{Dup} instruction immediately increments the reference count of a value, whereas the \texttt{PushFree} instruction only pushes the value to the "cleanup" stack, which is used in function's epilogue to decrease the reference counts of all values used during it runtime. To create an equivalent machine code, numeric values should be represented as \texttt{Float}, or \texttt{Any}\todo{not implemented}\footnotemark[2].
+The Operations \texttt{Dup} and \texttt{PushFree}\footnotemark[1] are used for updating the reference counts\footnotemark[2] of JavaScript values. To simplify the process of decreasing the reference counts, a cleanup stack is used at runtime. The \texttt{Dup} instruction immediately increments the reference count of a value, whereas the \texttt{PushFree} instruction only pushes the value to the "cleanup" stack, which is used in function's epilogue to decrease the reference counts of all values used during it runtime. To create an equivalent machine code, numeric values should be represented as \texttt{Float}, or \texttt{Any}\todo{not implemented}\footnotemark[3].
 
-\footnotetext[1]{While we talk about reference counts of values, the interface is not limited to this memory management approach. In practice, the underlying JavaScript interpreter may use a different algorithm (such as mark-and-sweep). In essence \texttt{Dup} and \texttt{PushFree} instructions only describe the action of taking and releasing the ownership of a value.}
+\footnotetext[1]{The names \texttt{Dup} and \texttt{Free} are not entirely descriptive of the operation which they perform, however, an equivalent operation in QuickJS is performed by a pair of functions \texttt{JS\_DupValue} and \texttt{JS\_FreeValue}, from the names are adapted.}
 
-\footnotetext[2]{The performance of arithmetic operations on different types may vary depending on the target CPU - for example, on a 32-bit CPU without 64-bit float acceleration, work with small integer values will be significantly faster when the \texttt{Any} type is used.}
+\footnotetext[2]{While we talk about reference counts of values, the interface is not limited to this memory management approach. In practice, the underlying JavaScript interpreter may use a different algorithm (such as mark-and-sweep). In essence \texttt{Dup} and \texttt{PushFree} instructions only describe the action of taking and releasing the ownership of a value.}
+
+\footnotetext[3]{The performance of arithmetic operations on different types may vary depending on the target CPU - for example, on a 32-bit CPU without 64-bit float acceleration, work with small integer values will be significantly faster when the \texttt{Any} type is used instead of \texttt{Float}.}
+
+
+\section{IR interpreter}
+
+An interpreter for the intermediate representation is available as a part of the test suite to allow for testing of the generated IR without compiling it to the native code. It allows for catching IR generation errors early and for avoiding the debugging of the final machine code. The interpreter works directly with the immediate variables and keeps track of their types and reference counts\todo{extend for primitives} during the runtime.
