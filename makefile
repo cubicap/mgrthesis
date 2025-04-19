@@ -2,10 +2,14 @@ latexcmd = latexmk -shell-escape -pdf
 chapters = $(wildcard chapters/*.tex)
 template = thesis.tex titlepage.tex frontmatter.tex
 deps = $(template) bibliography.bib $(chapters)
+bench_exec = ${BENCH_EXEC}
 
-.PHONY: all pvc clean clean-all
+.PHONY: all benchmarks pvc clean clean-all
 
 all: thesis.pdf
+
+benchmarks:
+	cd assets; ./bench_runner.sh $(bench_exec) && ./bench_process.py
 
 thesis.pdf: $(deps)
 	$(latexcmd) $< < /dev/null

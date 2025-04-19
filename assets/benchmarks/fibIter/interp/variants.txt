@@ -1,0 +1,7 @@
+--mode interp --path interp.js --count 1000 -Dx=1
+--mode interp --path interp.js --count 1000 -Dx=10
+--mode interp --path interp.js --count 1000 -Dx=100
+--mode interp --path interp.js --count 1000 -Dx=1000
+--mode interp --path interp.js --count 1000 -Dx=10000
+--mode interp --path interp.js --count 1000 -Dx=100000
+--mode interp --path interp.js --count 100 -Dx=1000000
