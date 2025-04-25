@@ -1,31 +1,44 @@
 \chapter{Language description}\label{language}
 
-The language implemented by the compiler is, at core, a subset of JavaScript with added type annotations and slightly modified semantics of arithmetic operations. This, in a way, makes it a slightly modified subset of TypeScript.
+The language implemented by the compiler is, at core, a subset of JavaScript with added type annotations and slightly modified semantics of arithmetic operations. This, in a way, makes it a subset of a modified TypeScript.
 
 The used version of JavaScript is standardized in the ECMAScript 2020 Language Specification\cite{ecma262}. This document serves as the primary reference for the language implemented by the compiler.
 
-TypeScript, on the other hand, does currently not have a formal standard and relies on an official implementation which serves as a reference. The last version which had a formal specification was version 1.8\cite{typescript18}. This version serves as a reference for the extended grammar and semantics of the language.
+TypeScript, on the other hand, does currently not have a formal standard and relies on an official implementation which serves as a reference. The last version which had a formal specification was version 1.8\cite{typescript18}. This version serves as a reference for the extended grammar and semantics of our language.
 
-While this chapter describes the full language we would like to implement, only a part of this language is supported by the compiler. The language features that are supported by the compiler are described in a later chapter.\todo{link}
+While this chapter describes the full language we would like to implement, only a part of this language is currently supported by the compiler. The language features that are supported by the compiler are described in a later chapter.\todo{link}
 
 \section{Grammar}
 
-The language grammar extends the grammar defined in the ECMAScript 2020 Language Specification\cite{ecma262} by allowing writing of type annotations in function signatures and declarations of variables. A type annotation is defined by the following production:
+The language grammar extends the grammar defined in the ECMAScript 2020 Language Specification\cite{ecma262} by allowing the writing of type annotations in function signatures and declarations of variables. A type annotation is defined by the following production:
 
 \begin{minted}{text}
-    TypeAnnotation -> Identifier
+    TypeAnnotation -> : Identifier
 \end{minted}
 
+\todo{add productions, fix grammar form, template parameters}
+
+The declarations of variables and type annotations then follow the following modified productions:
+\begin{minted}{text}
+    VariableDeclaration -> BindingIdentifier TypeAnnotation[opt] Initializer[opt]
+    VariableDeclaration -> BindingPattern Initializer[opt]
+
+    LexicalBinding -> BindingIdentifier TypeAnnotation[opt] Initializer[opt]
+    LexicalBinding -> BindingPattern Initializer[opt]
+
+    SingleNameBinding -> BindingIdentifier TypeAnnotation[opt] Initializer[opt]
+\end{minted}
+\todo{false}
 
 \section{Language semantics}
 
-The semantics of the implemented language will be the same as described in the ECMAScript 2020 Language Specification\cite{ecma262} except for the cases described below\todo{TypeScript}.
+The semantics of the implemented language are the same as described in the ECMAScript 2020 Language Specification\cite{ecma262} except for the cases described below\todo{TypeScript}.
 
 Because the values in JavaScript are untyped, many operations on them start with a type check and the selection of correct behavior of the operation. With statically typed variables, however, we can perform this selection at compile time and speed up the program execution. It is therefore advantageous to define these operations in such a way that the result type is always the same independently on the input values. We can also often replace the typical type union, which used to represent a JavaScript value, with the value itself.
 
-Because many microcontrollers do not have a 64-bit FPU\footnote{FPU: floating-point unit}, it is a good idea to avoid floating point operations. Unfortunately, in JavaScript, the number type is said to be an IEEE 754-2019 double precision float. Many interpreters, including QuickJS, use an integer type (typically a 32-bit int) to represent some values of the \texttt{number} type as an optimization, however, when the result of an operation does not fit in this type, the operands have to be promoted to a floating point number and the operation is performed in the floating point domain. This approach has two downsides:
+Because many microcontrollers do not have a 64-bit FPU\footnote{FPU: floating-point unit}, it is also desirable to avoid floating point operations. Unfortunately, in JavaScript, the number type is said to be an IEEE 754-2019 double precision float\cite{ieee754}. Many interpreters, including QuickJS, use an integer type (typically a 32-bit int) to represent some values of the \texttt{number} type as an optimization, however, when the result of an operation does not fit in this type, the operands have to be promoted to a floating point number and the operation is performed in the floating point domain. Even if a program is written so that no floating point operations are performed, this approach still has two downsides:
 \begin{itemize}
-    \item every arithmetic operation needs an overflow check, and
+    \item every arithmetic operation contains an overflow check, and
     \item the \texttt{number} type has to be a type union.
 \end{itemize}
 
@@ -38,6 +51,18 @@ It is therefore a good idea to define a new primitive type \texttt{Int32} which 
 \todo{linkage}
 
 
-\todo{TypeScript - types are not nullable}
+\todo{TypeScript -- types are not nullable}
 
 \section{Supported features}
+
+
+
+% As we want to implement an ahead-of-time compiler for Jaculus, there are only two obvious language options to choose from -- JavaScript and TypeScript. JavaScript is the native language used by the internal JavaScript interpreter while TypeScript support is provided by tools on the programmer's device.
+
+% The ahead-of-time compiler should be able to perform simple static analysis of the input program, select parts that can be easily compiled into machine code, and replace these parts with its machine code equivalent. This whole process should preferably happen as fast as possible as the compiler will be running in an environment with limited computational resources. The machine code should also be reasonably well performant, given the constrained environment.
+
+% The main feature that sets the available languages apart is their typing system. While JavaScript is dynamically typed, TypeScript uses gradual typing. In a gradual typing system, some variables have a static type known at compile time, while other variables may have an unknown, dynamic type (in TypeScript called \texttt{any}).
+
+% Static types are an advantageous feature when writing a compiler, as they can help the compiler generate faster code without requiring complex heuristics. For this reason, we have elected to use a subset of TypeScript as the language supported by our compiler. A specification of supported language features is described later in Section ?\todo{add link}.
+
+% Because TypeScript is a strict superset of JavaScript, most of its semantics comes from JavaScript, or more formally ECMAScipt, as specified in the ECMAScipt Language Specification\cite{ecma262}. This thesis will therefore often refer to the JavaScript specification for the semantics of operations. TypeScript, unfortunately, has no formal specification since version 1.8. Since then, it relies on the official implementation which serves as a reference.

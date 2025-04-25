@@ -1,4 +1,19 @@
 \chapter{Evaluation}
 
+\section{Comparison with interpreted code}
+
+The main reason for adding a compiler into a JavaScript runtime is a potential increase in execution speed. This section evaluates the performance difference between using Jaculus-machine with, and without the newly added compiler.
+
+To measure the performance difference, we choose several benchmarks which aim to test various language constructs.
+
+\section{Methodology}
+
+Because Jaculus primarily targets resource-limited environments, the benchmarks were executed on a Raspberry Pi 3 Model B\cite{rpi3b_product} single board computer (SBC). The SBC is equipped with a 64-bit quad-core ARM Cortex-A53 CPU running at 1.2 GHz and 1 GB of RAM. The CPU is based on the ARMv8-A architecture and uses the AArch64 instruction set which is supported by the MIR backend used in the compiler.
+
+The CPU has a 64-bit floating-point unit (FPU) and will probably not take the full advantage of our extension of JavaScript which allows programs to use integer operations instead of IEEE 754 floating-point operations.
+
+A benchmarking executable was added to Jaculus-machine which allows the user to execute a JavaScript file in an interpreter or a compiler mode. The executable can specify the number of iterations to run, and can define global constants available from the interpreter to parameterize the benchmark. In each iteration, a new instance of the Jaculus-machine is created, and the benchmark is executed. The time taken to execute the benchmark is measured using the \texttt{time} command in a Linux shell.
+
+The code being run in the interpreter and compiler modes is not identical because the interpreter does not support the added type annotations. The compiler, however, requires them to be present in the code. The code for both benchmarks therefore contains small differences in the form of type annotations. The code for the compiler mode also usually uses the \texttt{Int32} type where possible to take advantage of integer operations being faster than floating-point operations.
+
 \todo{add benchmarks}
-\todo{test262?}
