@@ -1,0 +1,7 @@
+--mode aot --path aot.js --count 100 -Dx=10
+--mode aot --path aot.js --count 100 -Dx=20
+--mode aot --path aot.js --count 100 -Dx=30
+--mode aot --path aot.js --count 100 -Dx=40
+--mode aot --path aot.js --count 100 -Dx=50
+--mode aot --path aot.js --count 100 -Dx=100
+--mode aot --path aot.js --count 100 -Dx=200

@@ -1,4 +1,4 @@
-function fib(n: Int32): Int32 {
+function fib(n: int32): int32 {
     if (n == 0) {
         return 0;
     }
