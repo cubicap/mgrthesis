@@ -1,0 +1,85 @@
+\chapter{Supported language features}\label{supported_lang}
+
+Because the language we would like to support by the compiler is quite large, the compiler implements only its subset. The compiler is designed to be extensible, so it is possible to extend the supported features with little effort. This chapter describes the language features that are currently supported by the compiler and, on the contrary, notes important features that are not supported.
+
+The parser supports only a limited subset of valid programs. Notably, the parser does not support general Unicode code points in many places; a program is expected to be written only using the ASCII character set. The parser does not support automatic semicolon insertion. Although only select functions are compiled, the parser still has to be able to parse the whole input program which therefore needs to adhere to the limited grammar supported by the parser. The parser supports a slightly larger subset of the language than the whole compiler, however, because listing all the supported features of each part of the compiler would be too verbose, the differences are omitted from this text. The source code of the parser can serve as a reference for the supported language.
+
+The ECMAScript 2023 Language Specification\cite{ecma262} often defines additional static semantics for many grammar productions. The compiler does not implement some of them and may produce a valid program even if the static semantics are not satisfied. In general, the input program is expected to be valid according to the specification for the compiler to behave correctly.
+
+
+\section{Functions}
+
+Only ordinary functions are supported by the runtime.
+
+Because the behavior of a function can change by compiling it to native code, the compiler does not compile all functions in the input program. Instead, only functions that contain type annotations in their signature are compiled. This allows the programmer to make a conscious decision about which functions will be compiled. These functions will always be compiled and if their compilation fails, the input program will not be executed.
+
+As described in Section \ref{stubs}, functions from a single script that are compiled to native code are statically linked together. While the semantics is then different from the semantics of standard JavaScript, it could be implemented without any changes to QuickJS, and makes the resulting code run faster.
+
+Compiled functions exist in an isolated space, where they can interact only with each other and their arguments. Notably, the lexical scope visible from these functions does not extend past the function body. The function code can therefore not interact with global variables or implicitly with the global object. It is, on the other hand, possible to pass any data (including the global object) as explicit parameters of a function and interact with them this way.
+
+Compiled functions also do not have access to the \texttt{arguments} object and the \texttt{this} binding.
+
+
+\section{Types}
+
+All types that are specified in Section \ref{ir:types} except the type \texttt{StringConst} can be used for variables, function arguments, and as a return type. The type \texttt{StringConst} only exists internally in the compiler and is used to represent string literals.
+
+
+\section{Variable and function declarations}
+
+The compiler supports both lexical and hoistable variable declarations. It supports only ordinary function declarations (i.e., no generators, async functions, and arrow functions).
+
+In the context of a function which is to be compiled, all arguments, return values, and local variables must have a type annotation.
+
+In general, \textit{binding pattern} and \textit{binding rest element} is not supported. Instead, the compiler supports only the use of simple identifiers for arguments and variable declarations.
+
+
+\section{Identifiers}
+
+Various structures in the language are identified by their name. JavaScript specifies a list of conditionally reserved words which cannot be used as identifiers. The compiler does not implement these rules and instead disallows the use of any reserved word\footnotemark[1] as an identifier. Identifiers also do not support the use of Unicode escape sequences.
+
+\footnotetext[1]{As specified in the grammar production \texttt{ReservedWord} in Section 12.7.2 of the ECMAScript 2023 Language Specification\cite{ecma262}.}
+
+
+\section{Literals}
+
+Standard JavaScript numeric, boolean and string literals are supported. A change of semantics is made to numeric literals. Numeric literals which can be represented as 32-bit integers represent a value of the type \texttt{Int32}. Remaining numeric literals are represented as a value of the type \texttt{Float64}. This type is then used to select the correct behavior of an operation the literal is used in. Legacy octal integer literals (i.e., literals starting with a zero) are not supported.
+
+String literals do not support all escape sequences.
+
+Notable literals that are not supported are object literals, array literals, and regular expression literals. These are not supported even by the parser and are therefore may not be used anywhere in the input program. The creation of these objects must therefore be performed by calling their corresponding constructor and by setting each property individually.
+
+
+\section{Operators}
+
+Arithmetic operations are implemented according to the modified semantics described in Section \ref{language}\todo{move spec there}. The exception is the \texttt{**} operator for exponentiation which is not supported.
+
+Relational operators, bitwise operators, and logical (short-circuit) operators are supported with limited operand types.
+
+Update expressions (i.e., \texttt{++} and \texttt{--}) are supported in both prefix and postfix forms. Keyword operators (i.e., \texttt{instanceof}, \texttt{in}, \texttt{typeof}, \texttt{void}, and \texttt{delete}) are, on the contrary, not supported.
+
+If an operator is supported, the corresponding compound assignment operator is supported as well (e.g., \texttt{+=}).
+
+Not all operands are supported by all operators\todo{list}.
+
+
+\section{Control flow}
+
+The compiler supports the following control flow statements:
+\begin{itemize}
+    \item \texttt{if} statement,
+    \item \texttt{while} statement,
+    \item \texttt{do while} statement,
+    \item \texttt{for} statement,
+    \item \texttt{break} statement,
+    \item \texttt{continue} statement,
+    \item \texttt{return} statement,
+    \item \texttt{throw} statement.
+\end{itemize}
+
+
+\chapter{Exceptions}
+
+Exceptions are partially supported by the compiler. If an exception is thrown from an expression or a statement, the exception will be propagated to the caller of the compiled function.
+
+The \texttt{try} statement is not supported, and it is not to perform any exception handling in the compiled code.

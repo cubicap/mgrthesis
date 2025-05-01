@@ -2,15 +2,15 @@
 
 The language implemented by the compiler is, at core, a subset of JavaScript with added type annotations and slightly modified semantics of arithmetic operations. This, in a way, makes it a subset of a modified TypeScript.
 
-The used version of JavaScript is standardized in the ECMAScript 2020 Language Specification\cite{ecma262}. This document serves as the primary reference for the language implemented by the compiler.
+The used version of JavaScript is standardized in the ECMAScript 2023 Language Specification\cite{ecma262}. This document serves as the primary reference for the language implemented by the compiler.
 
 TypeScript, on the other hand, does currently not have a formal standard and relies on an official implementation which serves as a reference. The last version which had a formal specification was version 1.8\cite{typescript18}. This version serves as a reference for the extended grammar and semantics of our language.
 
-While this chapter describes the full language we would like to implement, only a part of this language is currently supported by the compiler. The language features that are supported by the compiler are described in a later chapter.\todo{link}
+While this chapter describes the full language we would like to implement, only a part of this language is currently supported by the compiler. The language features that are supported by the compiler are described later in Chapter \ref{supported_lang}.
 
-\section{Grammar}
+\section{Grammar}\label{grammar}
 
-The language grammar extends the grammar defined in the ECMAScript 2020 Language Specification\cite{ecma262} by allowing the writing of type annotations in function signatures and declarations of variables. A type annotation is defined by the following production:
+The language grammar extends the grammar defined in the ECMAScript 2023 Language Specification\cite{ecma262} by allowing the writing of type annotations in function signatures and declarations of variables. A type annotation is defined by the following production:
 
 \begin{minted}{text}
     TypeAnnotation -> : Identifier
@@ -21,10 +21,10 @@ The language grammar extends the grammar defined in the ECMAScript 2020 Language
 The declarations of variables and type annotations then follow the following modified productions:
 \begin{minted}{text}
     VariableDeclaration -> BindingIdentifier TypeAnnotation[opt] Initializer[opt]
-    VariableDeclaration -> BindingPattern Initializer[opt]
+    VariableDeclaration -> BindingPattern TypeAnnotation[opt] Initializer[opt]
 
     LexicalBinding -> BindingIdentifier TypeAnnotation[opt] Initializer[opt]
-    LexicalBinding -> BindingPattern Initializer[opt]
+    LexicalBinding -> BindingPattern TypeAnnotation[opt] Initializer[opt]
 
     SingleNameBinding -> BindingIdentifier TypeAnnotation[opt] Initializer[opt]
 \end{minted}
@@ -32,7 +32,7 @@ The declarations of variables and type annotations then follow the following mod
 
 \section{Language semantics}
 
-The semantics of the implemented language are the same as described in the ECMAScript 2020 Language Specification\cite{ecma262} except for the cases described below\todo{TypeScript}.
+The semantics of the implemented language are the same as described in the ECMAScript 2023 Language Specification\cite{ecma262} except for the cases described below\todo{TypeScript}.
 
 Because the values in JavaScript are untyped, many operations on them start with a type check and the selection of correct behavior of the operation. With statically typed variables, however, we can perform this selection at compile time and speed up the program execution. It is therefore advantageous to define these operations in such a way that the result type is always the same independently on the input values. We can also often replace the typical type union, which used to represent a JavaScript value, with the value itself.
 
@@ -52,9 +52,6 @@ It is therefore a good idea to define a new primitive type \texttt{Int32} which 
 
 
 \todo{TypeScript -- types are not nullable}
-
-\section{Supported features}
-
 
 
 % As we want to implement an ahead-of-time compiler for Jaculus, there are only two obvious language options to choose from -- JavaScript and TypeScript. JavaScript is the native language used by the internal JavaScript interpreter while TypeScript support is provided by tools on the programmer's device.
