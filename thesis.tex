@@ -23,6 +23,24 @@
 \usepackage[pass]{geometry}
 \usepackage{ifdraft}
 
+\colorlet{DarkGoldenrod}{Dandelion!70!Black}
+
+\NewDocumentCommand{\GrammarRule}{O{} m m}{
+    \vspace{1em}
+    \noindent\begin{minipage}{\linewidth}
+        \nonterminalbase[#1]{#2}{} \textbf{:} \\
+        \setlength{\parindent}{2em}
+        \hspace*{2em}\parbox{\dimexpr\linewidth-4em\relax}{#3}
+    \end{minipage}
+    \par
+    \vspace{1em}
+}
+
+\newcommand{\terminal}[1]{\texttt{\textbf{#1}}}
+\newcommand{\nonterminalbase}[3][]{\textit{#1}\ifx&#2&\else\textsubscript{\textcolor{JungleGreen}{[#2]}}\fi\ifx&#3&\else\textsubscript{\textcolor{DarkGoldenrod}{#3}}\fi}
+\newcommand{\nonterminal}[2][]{\nonterminalbase[#1]{#2}}
+\newcommand{\gramiter}[1]{\underline{#1}}
+
 % Theorems – add your own environments, should you need them.
 \usepackage{amsthm}
 

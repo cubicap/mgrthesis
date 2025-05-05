@@ -1,65 +1,94 @@
 \chapter{Language description}\label{language}
 
-The language implemented by the compiler is, at core, a subset of JavaScript with added type annotations and slightly modified semantics of arithmetic operations. This, in a way, makes it a subset of a modified TypeScript.
+The language implemented by the compiler is a subset of JavaScript with added type annotations and slightly modified semantics of arithmetic operations. This, in a way, makes it a subset of a modified TypeScript.
 
-The used version of JavaScript is standardized in the ECMAScript 2023 Language Specification\cite{ecma262}. This document serves as the primary reference for the language implemented by the compiler.
+The version of JavaScript used as the base is standardized in the ECMAScript 2023 Language Specification\cite{ecma262} -- this document serves as the primary reference for the language implemented by the compiler.
 
-TypeScript, on the other hand, does currently not have a formal standard and relies on an official implementation which serves as a reference. The last version which had a formal specification was version 1.8\cite{typescript18}. This version serves as a reference for the extended grammar and semantics of our language.
+TypeScript, on the other hand, does currently not have a formal standard and relies on an official implementation which serves as a reference. The last version with an available specification was TypeScript 1.8\cite{typescript18}. This version serves as a reference for the extended grammar and semantics of our language.
 
 While this chapter describes the full language we would like to implement, only a part of this language is currently supported by the compiler. The language features that are supported by the compiler are described later in Chapter \ref{supported_lang}.
 
-\section{Grammar}\label{grammar}
 
-The language grammar extends the grammar defined in the ECMAScript 2023 Language Specification\cite{ecma262} by allowing the writing of type annotations in function signatures and declarations of variables. A type annotation is defined by the following production:
+\section{Grammar}\label{lang:grammar}
 
-\begin{minted}{text}
-    TypeAnnotation -> : Identifier
-\end{minted}
+The language grammar extends the grammar defined in the ECMAScript 2023 Language Specification\cite{ecma262} by allowing type annotations in function signatures and variable declarations. Grammar productions in this text are described using the same notation as is used in the specification. The notation is described in the specification in Section 5.1.5.\todo{is it ok?}
 
-\todo{add productions, fix grammar form, template parameters}
+A type annotation is defined by the following production:
+\todo{ask variable declaration}
+
+\GrammarRule[TypeAnnotation]{}{
+    \terminal{:} \nonterminal[Identifier]{}{}
+}
+
 
 The declarations of variables and type annotations then follow the following modified productions:
-\begin{minted}{text}
-    VariableDeclaration -> BindingIdentifier TypeAnnotation[opt] Initializer[opt]
-    VariableDeclaration -> BindingPattern TypeAnnotation[opt] Initializer[opt]
 
-    LexicalBinding -> BindingIdentifier TypeAnnotation[opt] Initializer[opt]
-    LexicalBinding -> BindingPattern TypeAnnotation[opt] Initializer[opt]
 
-    SingleNameBinding -> BindingIdentifier TypeAnnotation[opt] Initializer[opt]
-\end{minted}
-\todo{false}
+\GrammarRule[VariableDeclaration]{In, Yield, Await}{
+    \nonterminal[BindingIdentifier]{?Yield, ?Await}{} \nonterminal[TypeAnnotation]{}{opt} \nonterminal[Initializer]{}{opt} \\
+    \nonterminal[BindingPattern]{?Yield, ?Await}{} \nonterminal[TypeAnnotation]{}{opt} \nonterminal[Initializer]{}{}
+}
+\GrammarRule[LexicalBinding]{In, Yield, Await}{
+    \nonterminal[BindingIdentifier]{?Yield, ?Await}{} \nonterminal[TypeAnnotation]{}{opt} \nonterminal[Initializer]{}{opt} \\
+    \nonterminal[BindingPattern]{?Yield, ?Await}{} \nonterminal[TypeAnnotation]{}{opt} \nonterminal[Initializer]{}{}
+}
+\GrammarRule[SingleNameBinding]{In, Yield, Await}{
+    \nonterminal[BindingIdentifier]{?Yield, ?Await}{} \nonterminal[TypeAnnotation]{}{opt} \nonterminal[Initializer]{}{opt}
+}
 
-\section{Language semantics}
 
-The semantics of the implemented language are the same as described in the ECMAScript 2023 Language Specification\cite{ecma262} except for the cases described below\todo{TypeScript}.
+\section{Value types}\label{lang:types}
 
-Because the values in JavaScript are untyped, many operations on them start with a type check and the selection of correct behavior of the operation. With statically typed variables, however, we can perform this selection at compile time and speed up the program execution. It is therefore advantageous to define these operations in such a way that the result type is always the same independently on the input values. We can also often replace the typical type union, which used to represent a JavaScript value, with the value itself.
+There are several types available in JavaScript: \texttt{Undefined}, \texttt{Null}, \texttt{Boolean}, \texttt{String}, \texttt{Symbol}, \texttt{Number}, \texttt{BigInt}, and \texttt{Object}.
 
-Because many microcontrollers do not have a 64-bit FPU\footnote{FPU: floating-point unit}, it is also desirable to avoid floating point operations. Unfortunately, in JavaScript, the number type is said to be an IEEE 754-2019 double precision float\cite{ieee754}. Many interpreters, including QuickJS, use an integer type (typically a 32-bit int) to represent some values of the \texttt{number} type as an optimization, however, when the result of an operation does not fit in this type, the operands have to be promoted to a floating point number and the operation is performed in the floating point domain. Even if a program is written so that no floating point operations are performed, this approach still has two downsides:
+All these types, except \texttt{Object}, are primitive types. Primitive types are immutable and represent the simplest values available in JavaScript. The \texttt{Object} type represents a collection of properties. Each property is identified by a String or a Symbol value, and its value can be of any type. An object is generally mutable, and its properties can be added, removed, or modified. Some objects are callable as functions or constructors.
+
+The \texttt{Number} type is a double-precision 64-bit format IEEE 754-2019\cite{ieee754} floating point number. The \texttt{BigInt} type is a signed integer of arbitrary precision. The limited options of numeric types in JavaScript are a weak point of the language in regard to running on microcontrollers.
+
+Because many microcontrollers do not have a 64-bit FPU\footnote{FPU: floating-point unit}, it is desirable to avoid floating point operations whenever possible. While many interpreters, including QuickJS, use an integer type (typically with 32 bits) to represent some values of the \texttt{number} type as an optimization, when the result of an operation does not fit in this type, the operands have to be promoted to a floating point number and the operation has to be performed in the floating point domain. Even if a program is written so that no floating point operations are performed, this approach still has two downsides:
 \begin{itemize}
     \item every arithmetic operation contains an overflow check, and
-    \item the \texttt{number} type has to be a type union.
+    \item the \texttt{number} type is a tagged union.
 \end{itemize}
 
-It is therefore a good idea to define a new primitive type \texttt{Int32} which guarantees that all arithmetic operations with two \texttt{Int32} operands will result in a new value of the same type. The \texttt{Int32} type can be used in any other context where the specification\todo{how to abbrev?} expects a value of the type \texttt{number}. In such cases, the value will behave the same as an equivalent value of the type \texttt{number}.
+For this reason, we define a new primitive type \texttt{int32} which guarantees that all arithmetic operations with two \texttt{int32} operands will result in a new value of the same type. The type represents a 32-bit two's complement signed integer. Operations with the type follow the standard modular arithmetic. The \texttt{int32} type can be used in any other context where the specification\todo{how to abbrev?} expects a value of the type \texttt{number}. In these cases, the value behaves identical to an equivalent value of type \texttt{number}.
 
-\todo{implicit conversions on assignment}
+A new type \texttt{float64} is also defined. This type has the same semantics as the \texttt{number} type, but tells the compiler that the value should always be represented as a floating point number. Such values are easier to manipulate and operations can be faster if the value is expected to usually not be a small integer (in contrast to a more optimized \texttt{Number} type).
+
+For the use in type annotations, the following type names are allowed:
+\begin{itemize}
+    \item \texttt{int32} -- 32-bit signed integer,
+    \item \texttt{float64} -- 64-bit floating point number,
+    \item \texttt{boolean} -- boolean value,
+    \item \texttt{object} -- object reference (but not a primitive value including null),
+    \item \texttt{any} -- any value (JavaScript's dynamic type),
+    \item \texttt{void} -- no value (i.e., the function does not return anything).
+\end{itemize}
+
+While the list is quite limited and not well usable for checking the correct usage of more complex types, it is sufficient for allowing the compiler to perform some optimizations of the usage of primitive types.
+
+\todo{reference counting}
+
+
+\section{Language semantics}\label{lang:semantics}
+
+The semantics of the implemented language are the same as described in the ECMAScript 2023 Language Specification\cite{ecma262} except for the cases described below\todo{TS}.
+
+Because variables, and general bindings, in JavaScript are dynamically typed, many operations with them start with a type check and the selection of correct behavior of the operation. With statically typed bindings, however, we can perform this selection at compile time and speed up program execution. It is therefore advantageous to define these operations in such a way that the result type is always the same independently on the input values. We can also often replace the typical tagged union, which is used to represent a JavaScript value, with the value itself.
+
+New implicit conversions are defined for the types \texttt{int32} and \texttt{float64}. When an arithmetic operation, with the exception of exponentiation, is performed, it follows the following rules:
+
+\begin{itemize}
+    \item If both operands are of the type \texttt{int32}, no conversion is performed and the operation is performed using standard 32-bit integer arithmetic.
+    \item If one of the operands is of the type \texttt{float64} and the other is either \texttt{int32} or \texttt{float64}, the \texttt{int32} operand is converted to \texttt{float64} and the operation is performed in the floating point domain.
+    \item If one of the operands is of a different type than \texttt{int32} or \texttt{float64}, the operation is performed by the standard JavaScript rules. In this case, operands of the types \texttt{int32} and \texttt{float64} are converted to the type \texttt{number}.
+\end{itemize}
+
+In other contexts where the types \texttt{int32} and \texttt{float64} are not directly supported, the values are first converted to the type \texttt{number} and treated as such\footnote{While the behavior of these types is described using a conversion, it is expected that the values are only treated in the same way, and an optimization is performed}.
 
 \todo{explicit conversions (not implemented yet)}
 
 \todo{linkage}
 
 
-\todo{TypeScript -- types are not nullable}
-
-
-% As we want to implement an ahead-of-time compiler for Jaculus, there are only two obvious language options to choose from -- JavaScript and TypeScript. JavaScript is the native language used by the internal JavaScript interpreter while TypeScript support is provided by tools on the programmer's device.
-
-% The ahead-of-time compiler should be able to perform simple static analysis of the input program, select parts that can be easily compiled into machine code, and replace these parts with its machine code equivalent. This whole process should preferably happen as fast as possible as the compiler will be running in an environment with limited computational resources. The machine code should also be reasonably well performant, given the constrained environment.
-
-% The main feature that sets the available languages apart is their typing system. While JavaScript is dynamically typed, TypeScript uses gradual typing. In a gradual typing system, some variables have a static type known at compile time, while other variables may have an unknown, dynamic type (in TypeScript called \texttt{any}).
-
-% Static types are an advantageous feature when writing a compiler, as they can help the compiler generate faster code without requiring complex heuristics. For this reason, we have elected to use a subset of TypeScript as the language supported by our compiler. A specification of supported language features is described later in Section ?\todo{add link}.
-
-% Because TypeScript is a strict superset of JavaScript, most of its semantics comes from JavaScript, or more formally ECMAScipt, as specified in the ECMAScipt Language Specification\cite{ecma262}. This thesis will therefore often refer to the JavaScript specification for the semantics of operations. TypeScript, unfortunately, has no formal specification since version 1.8. Since then, it relies on the official implementation which serves as a reference.
+\todo{TS -- types are not nullable}

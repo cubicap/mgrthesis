@@ -1,14 +1,14 @@
 \chapter{Motivation}
 
-Traditionally, microcontrollers are programmed in compiled languages such as C or C++. These languages offer high performance and low-level access to hardware, which may be important in many embedded applications. However, they can be also difficult to learn and use, especially for beginners.
+Traditionally, microcontrollers are programmed in compiled languages such as C or C++. These languages offer high performance and low-level access to hardware, which is important in many embedded applications. However, they can be also difficult to learn and use, especially for beginners.
 
 At Robotárna, a branch of Leisure Center Helceletka in Brno, we teach programming of microcontrollers to teenagers. To make the learning process easier, we have decided to use a high-level interpreted language -- JavaScript -- instead. While this approach is unconventional, it has a strong advantage of a very fast code-build-test cycle. The speed of this cycle makes it easier for students to maintain their focus and allows them to experiment more with their code.
 
-So far, we have observed success with this approach. We observe students being able to learn the basics faster and start working on more interesting projects sooner. However, with students creating more complex projects, we have also reached a point where we need to consider the performance overhead of the JavaScript programs.
+So far, we have observed success with this approach. We see students being able to learn the basics faster and start working on more interesting projects sooner. However, with students creating more complex projects, we have also reached a point where we need to consider performance JavaScript programs.
 
-JavaScript, as an interpreted language, suffers from the inherent flaw of slow execution speed. The slow execution speed is the cost for the ease of use of JavaScript and, in a large part, stems from its dynamic nature and the difficulty to implement optimizations. Occasionally, more capable students encounter the lower performance of JavaScript as a limitation and have difficulties to implement their ideas.
+JavaScript, as an interpreted language, suffers from the inherent flaw of slow execution speed. It comes as a cost for the ease of use of JavaScript and, in a large part, stems from its dynamic nature and the difficulty to implement optimizations. Occasionally, more capable students encounter the lower performance of JavaScript as a limitation and have difficulties to implement their ideas.
 
-Because programming in JavaScript as a dynamically typed language can sometimes lead to errors that are difficult to debug, we usually do not write JavaScript directly. Instead, we usually write TypeScript and compile it to JavaScript only before execution.
+Because programming in JavaScript as a dynamically typed language can sometimes lead to errors that are difficult to debug, we usually do not write JavaScript directly. Instead, TypeScript is used and compiled to JavaScript only before execution.
 
 What is of particular interest, is the fact, that at the time of compilation to JavaScript, type annotations are removed from the input program, and some information about the input program is lost. This fact is unfortunate, because the type information could be used by the runtime environment to perform simple optimizations when loading the program.
 
@@ -16,4 +16,4 @@ In this thesis, we will explore the possibility of using a slightly modified sub
 
 \todo{requirements of the compiler? simplicity, resource constraints...}
 
-We believe, this will lead to a significant improvement in performance of some parts of such input programs that are written in a way, so they can benefit from this optimization.
+We believe, this will lead to a significant improvement in performance of some parts of such input programs that are written specifically, so they can benefit from this optimization.
