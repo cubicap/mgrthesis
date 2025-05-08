@@ -1,0 +1,15 @@
+--mode aot --path aotFloat.js --count 1000 -Dx=1
+--mode aot --path aotFloat.js --count 1000 -Dx=5
+--mode aot --path aotFloat.js --count 1000 -Dx=10
+--mode aot --path aotFloat.js --count 1000 -Dx=15
+--mode aot --path aotFloat.js --count 1000 -Dx=20
+--mode aot --path aotFloat.js --count 100 -Dx=21
+--mode aot --path aotFloat.js --count 100 -Dx=22
+--mode aot --path aotFloat.js --count 100 -Dx=23
+--mode aot --path aotFloat.js --count 100 -Dx=24
+--mode aot --path aotFloat.js --count 100 -Dx=25
+--mode aot --path aotFloat.js --count 100 -Dx=26
+--mode aot --path aotFloat.js --count 100 -Dx=27
+--mode aot --path aotFloat.js --count 100 -Dx=28
+--mode aot --path aotFloat.js --count 100 -Dx=29
+--mode aot --path aotFloat.js --count 100 -Dx=30

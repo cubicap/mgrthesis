@@ -1,4 +1,4 @@
-function fib(n) {
+function fib(n: float64): float64 {
     if (n == 0) {
         return 0;
     }

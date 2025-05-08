@@ -1,1 +1,5 @@
---mode interp --path interp.js --count 10
+--mode interp --path interp.js --count 100 -Ds=0 -Dn=100
+--mode interp --path interp.js --count 100 -Ds=1000 -Dn=100
+--mode interp --path interp.js --count 100 -Ds=2000 -Dn=100
+--mode interp --path interp.js --count 100 -Ds=3000 -Dn=100
+--mode interp --path interp.js --count 100 -Ds=4000 -Dn=100

@@ -33,8 +33,11 @@ Multiple other projects were used for the implementation of the proposed compile
 
 Jaculus was originally created as a part of the author's bachelor's thesis\cite{jaculusthesis}. This work is a continuation of the project.
 
-Jaculus is a platform for programming microcontrollers using JavaScript. At its core, Jaculus uses the QuickJS JavaScript engine. Jaculus' core library, Jaculus-machine, is of particular interest for this work, as the proposed compiler is implemented as an extension of this library. Jaculus-machine implements high-level C++ abstractions around QuickJS and implements some core features for the runtime (e.g., an event loop, or file system interactions).
-\todo{rewrite, more context}
+Jaculus is a platform for programming microcontrollers using JavaScript. Jaculus is separated into multiple libraries. The core library, \textit{Jaculus-machine}, provides a JavaScript runtime based on the QuickJS JavaScript engine\cite{quickjs}, and implements a set of C++ abstractions around it. It also provides some core features for the runtime, such as an event loop\footnote{In JavaScript, an event loop is a construct that realizes the asynchronous model of the language. It serializes the execution of individual events in the order in which they were generated.} or libraries available in the JavaScript environment.
+
+Other Jaculus libraries realize communication between the JavaScript runtime running on the microcontroller and the host computer used by the programmer (e.g., for uploading new programs), and provide platform-specific libraries for using the peripherals of the microcontroller.
+
+This thesis focuses on extending the Jaculus-machine library with an ahead-of-time compiler for a subset of TypeScript.
 
 
 \subsection{QuickJS}
@@ -47,15 +50,58 @@ QuickJS uses a stack-based bytecode machine. To reduce the startup time, QuickJS
 
 Values in JavaScript have a dynamic type, which may fall into one of several categories. In QuickJS, values are represented using a tagged union -- a structure with two 64-bit values representing the tag and a value.
 
-Some primitive values are placed directly into this structure while others are allocated on the heap and the structure only contains a pointer to the value. Values which require memory allocation use reference counting with cycle detection for memory management.
+Some primitive values are placed directly into this structure while others are allocated on the heap and the structure only contains a pointer to the value. Values which require memory allocation use reference counting with cycle detection for memory management. For these values, QuickJS provides a pair of functions for incrementing and decrementing the reference count.
 
 \todo{expand}
 
 
 \subsection{Compiler backends}
 
-\todo{write}
+For the implementation of our compiler, we have chosen to use an existing compiler backend. This section describes several compiler backends that were considered. We need the compiler backend to be reasonably small and fast, usable as a library, and to work with a target independent intermediate representation. It should also handle register allocation.
+
+Ultimately, we have chosen the MIR compiler backend which suites our needs well.
+\todo{use correct naming for ISA, arch}
+
 
 \subsubsection{MIR}
 
-MIR is a small compiler backend designed for usage in JIT scenarios.
+MIR is a powerful compiler backend designed for use in JIT compilers\cite{mir}. It uses a strongly typed, target independent intermediate representation. MIR supports multiple architectures -- x86\_64, aarch64, ppc64le, s390x, and riscv64. It should also be possible to add support for other architectures, including 32-bit ones. MIR implements several optimization passes.
+
+MIR provides a C API for generating of the intermediate representation. The output of the compiler are pointers to the generated code (functions) which can be called directly using the native calling convention.
+
+In MIR, all \textit{local variables} have the same type -- a 64-bit integer, float, double, or long double. While it is natural on 64-bit targets, it will make porting the compiler to 32-bit architectures more difficult.
+
+
+\subsubsection{Cwerg BE}
+
+Cwerg backend is primarily developed in conjunction with the Cwerg language\cite{cwerg}. The focus of the project is to maintain a small, maintainable codebase with less focus on code performance.
+
+Similarly to MIR, Cwerg provides a C++ API for generating the intermediate representation. Cwerg generates the machine code in a user-provided buffer, and gives the user pointers to symbols in the generated code. Generated functions can be called directly using the native calling convention.
+
+The author of Cwerg advertises the backend to be suitable for use in JIT compilers, however, because the compiler stores all data from compilation in global data structures, which are not reset after compilation, it can be only used as a one-time, ahead-of-time compiler. This behavior makes it unsuitable for our use case, where we want to be able to reset the runtime multiple times during the execution of a main program.
+
+
+\subsubsection{LLVM}
+
+\todo{skip?}
+
+
+\subsubsection{DynASM}
+
+DynASM is a JIT library primarily used in the LuaJIT project\cite{dynasm}. DynASM by itself is retargetable to other languages, however, it is still strongly tied with the Lua world. The preprocessing of the input text for DynASM is implemented in Lua and an interpreter for Lua is therefore required to use DynASM.
+
+For the use in restricted environments, having a second interpreter is not ideal.
+
+
+\subsubsection{QBE}
+
+QBE is a small compiler backend with a focus on simplicity and small code size\cite{qbe}. It is not designed as a library, but as a standalone compiler. While it is possible to modify QBE to be usable directly from a program, another limitation is that the input for QBE is a text program and that QBE generates text assembly as output.
+
+
+\subsubsection{Eigen Compiler Suite}
+
+Eigen Compiler Suite is a full compiler suite for several languages with support for multiple architectures\cite{ecs}. It is primarily designed as a standalone compiler, however, it is written in a way that makes it convenient to use individual parts as a library.
+
+Internally, the compiler uses a platform independent intermediate representation, and the compiler backend can be used independently. It supports many architectures, including x86\_64, ARM32/64, AVR or Xtensa.
+
+An unfortunate downside of the compiler is that it implements a custom calling convention which makes it difficult to interface with the program calling the compiler. The compiler also does not generate particularly efficient code, especially for less common architectures such as Xtensa.

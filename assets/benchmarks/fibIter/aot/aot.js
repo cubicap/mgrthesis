@@ -15,4 +15,5 @@ function fib(n: int32): int32 {
     return n1;
 }
 
-fib(Number(x).valueOf());
+fib(x);
+exit(0);

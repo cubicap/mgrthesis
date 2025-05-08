@@ -3,50 +3,46 @@ function setPx(array, width, x, y, value) {
 }
 
 
-function line(array, width, x0, y0, x1, y1, m) {
+function line(array, width, x0, y0, x1, y1) {
     let dx = x1 - x0;
     let dy = y1 - y0;
-    let dxFloat = dx;
-    let gradient = dy / dxFloat;
+    let gradient = dy / dx;
 
-    let xEnd = x0;
-    let yEnd = y0;
-    let xGap = 1 - (x0 + 0.5 - Math.floor(x0 + 0.5));
-    let xPixel1 = xEnd;
-    let yPixel1 = yEnd;
+    let xPixel1 = x0;
+    let yPixel1 = y0;
 
-    array[yPixel1 * width + xPixel1] = Math.floor((1 - (yEnd - yPixel1)) * xGap * 255);
-    array[(yPixel1 + 1) * width + xPixel1] = Math.floor((yEnd - yPixel1) * xGap * 255);
+    setPx(array, width, xPixel1, yPixel1, 255);
 
-    let intery = yEnd + gradient;
+    let intery = y0 + gradient;
 
-    xEnd = x1;
-    yEnd = y1;
-    xGap = x1 + 0.5 - Math.floor(x1 + 0.5);
-    let xPixel2 = xEnd;
-    let yPixel2 = yEnd;
+    let xPixel2 = x1;
+    let yPixel2 = y1;
 
-    array[ yPixel2 * width + xPixel2] = Math.round((1 - (yEnd - yPixel2)) * xGap * 255);
-    array[(yPixel2 + 1) * width + xPixel2] = Math.round((yEnd - yPixel2) * xGap * 255);
+    setPx(array, width, xPixel2, yPixel2, 255);
 
     for (let x = xPixel1 + 1; x < xPixel2; x++) {
         let floorIntery = Math.floor(intery);
-        array[floorIntery * width + x] = Math.round((1 - (intery - floorIntery)) * 255);
-        array[(floorIntery + 1) * width + x] = Math.round((intery - floorIntery) * 255);
+        setPx(array, width, x, floorIntery, Math.round((1 - (intery - floorIntery)) * 255));
+        setPx(array, width, x, floorIntery + 1, Math.round((intery - floorIntery) * 255));
         intery += gradient;
     }
 }
 
 
-const width = 4000;
-const height = 3000;
-let buf = new ArrayBuffer(width * height);
-let array = new Uint8Array(buf);
-let x1 = 500;
-let y1 = 500;
-let x2 = 3500;
-let y2 = 2300;
+function run(size, count) {
+    const width = size * 1.5;
+    const height = size;
+    let buf = new ArrayBuffer(width * height);
+    let array = new Uint8Array(buf);
+    let x1 = 0;
+    let y1 = 0;
+    let x2 = width;
+    let y2 = height;
 
-for (let i = 0; i < 1000; i++) {
-    line(array, width, x1, y1, x2, y2, Math);
+    for (let i = 0; i < count; i++) {
+        line(array, width, x1, y1, x2, y2);
+    }
 }
+
+run(s, n);
+exit(0);

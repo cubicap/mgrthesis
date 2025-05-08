@@ -11,6 +11,9 @@ all: thesis.pdf
 benchmarks:
 	cd assets; ./bench_runner.sh $(bench_exec) && ./bench_process.py
 
+irgen-viz:
+	cd assets/irgen; ./build.sh
+
 thesis.pdf: $(deps)
 	$(latexcmd) $< < /dev/null
 

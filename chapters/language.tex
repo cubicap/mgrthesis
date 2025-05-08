@@ -6,7 +6,7 @@ The version of JavaScript used as the base is standardized in the ECMAScript 202
 
 TypeScript, on the other hand, does currently not have a formal standard and relies on an official implementation which serves as a reference. The last version with an available specification was TypeScript 1.8\cite{typescript18}. This version serves as a reference for the extended grammar and semantics of our language.
 
-While this chapter describes the full language we would like to implement, only a part of this language is currently supported by the compiler. The language features that are supported by the compiler are described later in Chapter \ref{supported_lang}.
+While this chapter describes the full language we would like to implement, only a part of this language is currently supported by the compiler. The language features that are supported by the compiler are described later in Chapter \ref{chap:supported_lang}.
 
 
 \section{Grammar}\label{lang:grammar}
@@ -41,7 +41,7 @@ The declarations of variables and type annotations then follow the following mod
 
 There are several types available in JavaScript: \texttt{Undefined}, \texttt{Null}, \texttt{Boolean}, \texttt{String}, \texttt{Symbol}, \texttt{Number}, \texttt{BigInt}, and \texttt{Object}.
 
-All these types, except \texttt{Object}, are primitive types. Primitive types are immutable and represent the simplest values available in JavaScript. The \texttt{Object} type represents a collection of properties. Each property is identified by a String or a Symbol value, and its value can be of any type. An object is generally mutable, and its properties can be added, removed, or modified. Some objects are callable as functions or constructors.
+All these types, except \texttt{Object}, are primitive types. Primitive types are immutable and represent the simplest values available in JavaScript. The \texttt{Object} type represents a collection of properties. Each property is identified by a String or a Symbol value, and its value can be of any type. An object is generally mutable, and its properties can be added, removed, and modified. Some objects are callable as functions or constructors.
 
 The \texttt{Number} type is a double-precision 64-bit format IEEE 754-2019\cite{ieee754} floating point number. The \texttt{BigInt} type is a signed integer of arbitrary precision. The limited options of numeric types in JavaScript are a weak point of the language in regard to running on microcontrollers.
 
@@ -51,7 +51,7 @@ Because many microcontrollers do not have a 64-bit FPU\footnote{FPU: floating-po
     \item the \texttt{number} type is a tagged union.
 \end{itemize}
 
-For this reason, we define a new primitive type \texttt{int32} which guarantees that all arithmetic operations with two \texttt{int32} operands will result in a new value of the same type. The type represents a 32-bit two's complement signed integer. Operations with the type follow the standard modular arithmetic. The \texttt{int32} type can be used in any other context where the specification\todo{how to abbrev?} expects a value of the type \texttt{number}. In these cases, the value behaves identical to an equivalent value of type \texttt{number}.
+For this reason, we define a new primitive type \texttt{int32} which guarantees that all arithmetic operations with two \texttt{int32} operands will result in a new value of the same type. The type represents a 32-bit two's complement signed integer. Operations with the type follow the standard modular arithmetic. The \texttt{int32} type can be used in any other context where the specification\todo{how to abbrev?} expects a value of the type \texttt{number}. In these cases, the value behaves identical to an equivalent value of type \texttt{number}.\todo{make type name capitalization consistent}
 
 A new type \texttt{float64} is also defined. This type has the same semantics as the \texttt{number} type, but tells the compiler that the value should always be represented as a floating point number. Such values are easier to manipulate and operations can be faster if the value is expected to usually not be a small integer (in contrast to a more optimized \texttt{Number} type).
 
@@ -76,7 +76,7 @@ The semantics of the implemented language are the same as described in the ECMAS
 
 Because variables, and general bindings, in JavaScript are dynamically typed, many operations with them start with a type check and the selection of correct behavior of the operation. With statically typed bindings, however, we can perform this selection at compile time and speed up program execution. It is therefore advantageous to define these operations in such a way that the result type is always the same independently on the input values. We can also often replace the typical tagged union, which is used to represent a JavaScript value, with the value itself.
 
-New implicit conversions are defined for the types \texttt{int32} and \texttt{float64}. When an arithmetic operation, with the exception of exponentiation, is performed, it follows the following rules:
+New implicit conversions are defined for the types \texttt{int32} and \texttt{float64}. When an arithmetic operation, except exponentiation, is performed, the following rules are applied:
 
 \begin{itemize}
     \item If both operands are of the type \texttt{int32}, no conversion is performed and the operation is performed using standard 32-bit integer arithmetic.
@@ -85,8 +85,6 @@ New implicit conversions are defined for the types \texttt{int32} and \texttt{fl
 \end{itemize}
 
 In other contexts where the types \texttt{int32} and \texttt{float64} are not directly supported, the values are first converted to the type \texttt{number} and treated as such\footnote{While the behavior of these types is described using a conversion, it is expected that the values are only treated in the same way, and an optimization is performed}.
-
-\todo{explicit conversions (not implemented yet)}
 
 \todo{linkage}
 

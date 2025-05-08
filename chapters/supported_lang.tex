@@ -1,4 +1,4 @@
-\chapter{Supported language features}\label{supported_lang}
+\chapter{Supported language features}\label{chap:supported_lang}
 
 Because of the extent of the language we would like to support in the compiler, only a subset is implemented. The compiler is designed to be extensible, so it is possible to extend the supported features with reasonable effort. This chapter describes the language features that are currently supported by the compiler and notes important features whose support is missing.
 
@@ -50,15 +50,15 @@ Notable literals that are not supported are object literals, array literals, and
 
 \section{Operators}
 
-Arithmetic and bitwise operators are implemented according to the modified semantics described in Section \ref{language}\todo{move spec there?}.
+Arithmetic, relational, and bitwise operators are implemented according to the modified semantics described in Section \ref{language}\todo{move spec there?}.
 
-Relational operators, and logical (short-circuit) operators are supported with limited operand types. Relational operators only support operands of the types \texttt{int32}, \texttt{float64}, and \texttt{boolean}. Short-circuit operators only support operands of the type \texttt{boolean}.
+Logical (short-circuit) operators are supported with limited operand types. Short-circuit operators only support operands of the type \texttt{boolean}.
 
-Update expressions (i.e., \texttt{++} and \texttt{{-}{-}}) are supported in both prefix and postfix forms. Keyword operators (i.e., \texttt{instanceof}, \texttt{in}, \texttt{typeof}, \texttt{void}, and \texttt{delete}) are, on the contrary, not supported.
+Update expressions (i.e., \texttt{++} and \texttt{{-}{-}}) are supported in both prefix and postfix forms.
 
-Member access operators (i.e., \texttt{.} and \texttt{[]}) are supported only for operands \texttt{Object} for the object and text literal or \texttt{int32} for the identifier. The \texttt{.?} operator is not supported.
+Member access operators (i.e., \texttt{.} and \texttt{[]}) are supported for operands \texttt{object} or \texttt{any} for the object, and string literal, \texttt{int32} or \texttt{any} for the identifier.
 
-Operators \texttt{??}, \texttt{===}, \texttt{!==} are not supported.\todo{rewrite}
+Operators \texttt{.?}, \texttt{??}, \texttt{===}, and \texttt{!==} are not supported. Likewise, keyword operators (i.e., \texttt{instanceof}, \texttt{in}, \texttt{typeof}, \texttt{void}, and \texttt{delete}) are not supported.
 
 
 \section{Control flow}

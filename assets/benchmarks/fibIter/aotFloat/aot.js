@@ -15,4 +15,5 @@ function fib(n: float64): float64 {
     return n1;
 }
 
-fib(Number(x).valueOf() + 0.001);
+fib(x);
+exit(0);

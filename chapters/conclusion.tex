@@ -1,12 +1,17 @@
 \chapter{Conclusion}
 
-\section{Limitations}
 
-\todo{write}
+The goal of this thesis was to implement an ahead-of-time compiler for a subset of TypeScript and integrate it into Jaculus-machine.
+
+The presented compiler is able to compile programs written in a subset of TypeScript described in Chapter \ref{chap:supported_lang} to machine code. The supported language is large enough to be usable for writing simple programs and library subroutines.
+
+The compiler also provides a significant performance improvement over interpreted code.
 
 
-\section{Future work}
+\section{Limitations and future work}
 
-\todo{extend language support}
-\todo{support xtensa, riscv32}
-\todo{optimize}
+At present, the compiler supports several 64-bit instruction sets. This allows it to be used on many devices, including single-board computers like the Raspberry Pi. However, most microcontrollers are based on 32-bit architectures, which are not supported by the compiler.
+
+Because the compiler lacks support for the Xtensa and RISC-V32 instruction sets, it can not be integrated into Jaculus runtime for ESP32 microcontrollers -- the primary platform targeted by Jaculus. Extending the MIR backend to support these architectures should be possible with reasonable effort, and should be the next step in the development of the compiler.
+
+The limited language support is another limitation of the compiler, as writing more complex programs without all features of the language is inconvenient. Future work should focus on extending the language support of the compiler, or allowing the user to avoid these limitations in some way.

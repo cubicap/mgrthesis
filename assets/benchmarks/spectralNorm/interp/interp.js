@@ -64,3 +64,4 @@ function spectralnorm(n) {
 }
 
 spectralnorm(x);
+exit(0);

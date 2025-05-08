@@ -10,8 +10,75 @@ To measure the performance difference, we choose several benchmarks which aim to
 
 Because Jaculus primarily targets resource-limited environments, the benchmarks were executed on a Raspberry Pi 3 Model B\cite{rpi3b_product} single board computer (SBC). The SBC is equipped with a 64-bit quad-core ARM Cortex-A53 CPU running at 1.2 GHz and 1 GB of RAM. The CPU is based on the ARMv8-A architecture and uses the AArch64 instruction set which is supported by the MIR backend used in the compiler.
 
-A benchmarking executable was added to Jaculus-machine which allows the user to execute a JavaScript file in an interpreter or a compiler mode. The executable can specify the number of iterations to run, and can define global constants available from the interpreter to parameterize the benchmark. In each iteration, a new instance of the Jaculus-machine is created, and the benchmark is executed. The time taken to execute the benchmark is measured using the \texttt{time} command in a Linux shell.
+A benchmarking executable was added to Jaculus-machine which allows the user to execute a JavaScript file in an interpreter or a compiler mode. The executable can specify the number of iterations to run, and can define global constants available from the interpreter to parameterize the benchmark. In each iteration, a new instance of the Jaculus Machine is created, and the benchmark is executed. The time taken to execute the benchmark is measured using the \texttt{time} command in a Linux shell.
 
-The code being run in the interpreter and compiler modes is not identical because the interpreter does not support the added type annotations which are, however, required by the compiler. The code for both benchmarks therefore contains small differences in the form of type annotations. The code for the compiler mode also usually uses the \texttt{Int32} type where possible to take advantage of integer operations being faster than floating-point operations.
+The code being run in the interpreter and compiler modes is not identical because the interpreter does not support the added type annotations which are, however, required by the compiler. The code for both benchmarks therefore contains small differences. The code for the compiler mode also uses the \texttt{int32} type where possible to take advantage of integer operations being faster than floating-point operations.
 
-\todo{add benchmarks}
+
+\section{Benchmarks}
+
+We have chosen three benchmarks to evaluate the performance of the compiler compared to only using the interpreter. The benchmarks are:
+\begin{itemize}
+    \item Naive recursive calculation of nth Fibonacci number(Figure \ref{fig:fibRec}),
+    \item Matrix multiplication (Figure \ref{fig:matmul}), and\todo{actually run the benchmark (currently spectral norm)}
+    \item Line rendering with Wu's algorithm (Figure \ref{fig:line}).
+\end{itemize}
+
+The first benchmark is a naive recursive calculation of the nth Fibonacci number. The benchmark primarily tests the performance of function calls, because not much computation is performed in the function itself. The number of calls in this benchmark is exponential in the value of \texttt{n}.
+
+The second benchmark is a matrix multiplication of two matrices of a given size. The benchmark mainly tests the performance of loops, array access, and arithmetic operations. The number of operations in this benchmark is quadratic in the size of the matrices.
+
+The third benchmark renders 100 lines using Wu's algorithm\cite{wu}. The benchmark tests the performance of loops, array access, and arithmetic operations. The number of operations in this benchmark is linear in the length of the lines.
+
+We have also compared the performance of the compiler when using \texttt{int32} operations and \texttt{float64} operations. The comparison was performed on the first benchmark -- Fibonacci.
+
+The code for all benchmarks is available in the attached archive described in Appendix \ref{app:attachments}.
+
+
+\subsection{Results}
+
+The results of the benchmarks are shown in Figures \ref{fig:fibRec}, \ref{fig:matmul}, and \ref{fig:line}. The x-axis shows the size of the input to the benchmark, and the y-axis shows the time taken to execute the benchmark in milliseconds. The results for the interpreter mode are shown in blue, and the results for the compiler mode are shown in red.
+
+For the Fibonacci benchmark, compiler mode using \texttt{int32} is shown in blue, and the compiler mode using \texttt{float64} is shown in gray.
+
+The results show that in compiler mode, the runtime outperforms the interpreter mode for larger inputs in all benchmarks. For large inputs, the performance difference in these benchmarks is by a factor of 3 to 9.
+
+The downside of the compiler is a slower startup time. It is best visible in the Fibonacci benchmark where the startup time dominates the execution time for inputs smaller than 15. While in interpreter mode, the startup time is around 0.3 ms, in compiler mode it is around 1.2 ms. The effect is less pronounced in the other benchmarks, because their computational intensity increases faster even for smaller inputs.\todo{update numbers according to results from rpi}
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}
+            \addplot[blue, mark=*] table [x=-Dx,y=real_time] {assets/processed/benchmarks/fibRec/interp.csv};
+            \addplot[gray, mark=*] table [x=-Dx,y=real_time] {assets/processed/benchmarks/fibRec/aotFloat.csv};
+            \addplot[red, mark=*] table [x=-Dx,y=real_time] {assets/processed/benchmarks/fibRec/aot.csv};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Results of the Fibonacci benchmark.}
+    \label{fig:fibRec}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}
+            \addplot[blue, mark=*] table [x=-Dx,y=real_time] {assets/processed/benchmarks/spectralNorm/interp.csv};
+            \addplot[red, mark=*] table [x=-Dx,y=real_time] {assets/processed/benchmarks/spectralNorm/aot.csv};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Results of the matrix multiplication benchmark.}
+    \label{fig:matmul}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}
+            \addplot[blue, mark=*] table [x=-Ds,y=real_time] {assets/processed/benchmarks/graphics/interp.csv};
+            \addplot[gray, mark=*] table [x=-Ds,y=real_time] {assets/processed/benchmarks/graphics/aotFloat.csv};
+            \addplot[red, mark=*] table [x=-Ds,y=real_time] {assets/processed/benchmarks/graphics/aot.csv};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Results of the line rendering benchmark.}
+    \label{fig:line}
+\end{figure}

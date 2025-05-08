@@ -63,4 +63,5 @@ function spectralnorm(n) {
     return Math.sqrt(vBv / vv);
 }
 
-spectralnorm(Number(x).valueOf());
+spectralnorm(x);
+exit(0);
