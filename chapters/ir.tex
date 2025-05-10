@@ -18,7 +18,7 @@ The state of the virtual machine consists of:
     \item a reference to a JavaScript interpreter.
 \end{itemize}
 
-The virtual machine can execute a single function with given arguments. Each execution step performs a single instruction at the position of the instruction pointer and updates the instruction pointer accordingly. A \texttt{Call} instruction is not processed by the same machine. Instead, the virtual machine is paused until the call is finished by the correct means (e.g., as a native call, in a new virtual machine).
+The virtual machine can execute a single function with given arguments. Each execution step performs a single instruction at the position of the instruction pointer and updates the instruction pointer accordingly. A \texttt{Call} instruction is not processed by the same machine. Instead, the virtual machine is paused until the call is finished by the correct means (e.g., as a native call, or in a new virtual machine).
 
 To simplify the process of generating the IR, the virtual machine uses an unlimited number of virtual registers. These will be referred to as \textit{IR registers}. IR registers should not be confused with CPU registers, as they can hold different, and more complex value types (i.e., JavaScript's dynamic type), and are only later mapped into physical memory or CPU registers. IR registers are statically typed and can take on the types described in Section \ref{ir:types}. Each register has a unique identifier represented by a numeric value.
 
@@ -69,7 +69,7 @@ IR instructions represent simple operations and may have different variants base
 
 All Operations are listed in Table \ref{tab:opcodes}. The behavior of each Operation follows the semantics of the JavaScript language as described in Section \ref{lang:semantics}. A difference is that while the JavaScript specification describes every operation with dynamic argument types and type coercion is performed by the operation, the IR instructions are statically typed and expect the arguments to be already coerced to the correct types.
 
-The Operations \texttt{Dup} and \texttt{PushFree}\footnotemark[1] are used for updating the reference counts\footnotemark[2] of JavaScript values. To simplify the process of decreasing the reference counts, a cleanup stack is used at runtime. The \texttt{Dup} instruction immediately increments the reference count of a value, whereas the \texttt{PushFree} instruction only pushes the value to the "cleanup" stack, which is used in function's epilogue to decrease the reference counts of all values used during its runtime..
+The Operations \texttt{Dup} and \texttt{PushFree}\footnotemark[1] are used for updating the reference counts\footnotemark[2] of JavaScript values. To simplify the process of decreasing the reference counts, a cleanup stack is used at runtime. The \texttt{Dup} instruction immediately increments the reference count of a value, whereas the \texttt{PushFree} instruction only pushes the value to the cleanup stack, which is used in function's epilogue to decrease the reference counts of all values used during its runtime.
 
 \footnotetext[1]{The names \texttt{Dup} and \texttt{Free} are not entirely descriptive of the operation which they perform, however, an equivalent operation in QuickJS is performed by a pair of functions \texttt{JS\_DupValue} and \texttt{JS\_FreeValue}, from which the names are derived.}
 
@@ -80,15 +80,15 @@ The Operations \texttt{Dup} and \texttt{PushFree}\footnotemark[1] are used for u
     \centering
     \begin{tabular}{l | l | l}
         \texttt{Opcode}      & Signature \texttt{(a b -> res)}    &  Meaning                    \\\hline
-        \texttt{Add}         & \texttt{a      a     -> a        } &  Addition                   \\
-        \texttt{Sub}         & \texttt{a      a     -> a        } &  Subtraction                \\
-        \texttt{Mul}         & \texttt{a      a     -> a        } &  Multiplication             \\
-        \texttt{Div}         & \texttt{a      a     -> a        } &  Division                   \\
-        \texttt{Rem}         & \texttt{a      a     -> a        } &  Remainder                  \\
-        \texttt{Pow}         & \texttt{a      a     -> a        } &  Exponentiation             \\
-        \texttt{UnPlus}      & \texttt{a      \_    -> a        } &  Unary plus                 \\
-        \texttt{UnMinus}     & \texttt{a      \_    -> a        } &  Unary minus                \\
-                             & \texttt{a = Int32 | Float64 | Any} &                             \\\hline
+        \texttt{Add}         & \texttt{n      n     -> n        } &  Addition                   \\
+        \texttt{Sub}         & \texttt{n      n     -> n        } &  Subtraction                \\
+        \texttt{Mul}         & \texttt{n      n     -> n        } &  Multiplication             \\
+        \texttt{Div}         & \texttt{n      n     -> n        } &  Division                   \\
+        \texttt{Rem}         & \texttt{n      n     -> n        } &  Remainder                  \\
+        \texttt{Pow}         & \texttt{n      n     -> n        } &  Exponentiation             \\
+        \texttt{UnPlus}      & \texttt{n      \_    -> n        } &  Unary plus                 \\
+        \texttt{UnMinus}     & \texttt{n      \_    -> n        } &  Unary minus                \\
+                             & \texttt{n = Int32 | Float64 | Any} &                             \\\hline
         \texttt{LShift}      & \texttt{Int32  Int32 -> Int32    } &  Left shift                 \\
         \texttt{RShift}      & \texttt{Int32  Int32 -> Int32    } &  Right shift                \\
         \texttt{URShift}     & \texttt{Int32  Int32 -> Int32    } &  Unsigned right shift       \\
@@ -106,6 +106,7 @@ The Operations \texttt{Dup} and \texttt{PushFree}\footnotemark[1] are used for u
         \texttt{GetMember}   & \texttt{parent id    -> Any      } &  Get member                 \\
         \texttt{SetMember}   & \texttt{id     a     -> parent   } &  Set member                 \\
                              & \texttt{id = StringConst | Int32 } &                             \\
+                             & \texttt{~~~~~| Any                 } &                             \\
                              & \texttt{parent = Object | Any    } &                             \\\hline
         \texttt{Set}         & \texttt{a      \_    -> b        } &  Convert, set IR register   \\
         \texttt{Dup}         & \texttt{a      \_    -> \_       } &  Increment reference count  \\

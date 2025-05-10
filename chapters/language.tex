@@ -1,6 +1,6 @@
 \chapter{Language description}\label{language}
 
-The language implemented by the compiler is a subset of JavaScript with added type annotations and slightly modified semantics of arithmetic operations. This, in a way, makes it a subset of a modified TypeScript.
+The language implemented by the compiler is a subset of JavaScript with added type annotations and slightly modified semantics of arithmetic operations. In a way, this makes it a subset of a modified TypeScript.
 
 The version of JavaScript used as the base is standardized in the ECMAScript 2023 Language Specification\cite{ecma262} -- this document serves as the primary reference for the language implemented by the compiler.
 
@@ -74,12 +74,12 @@ While the list is quite limited and not well usable for checking the correct usa
 
 The semantics of the implemented language are the same as described in the ECMAScript 2023 Language Specification\cite{ecma262} except for the cases described below\todo{TS}.
 
-Because variables, and general bindings, in JavaScript are dynamically typed, many operations with them start with a type check and the selection of correct behavior of the operation. With statically typed bindings, however, we can perform this selection at compile time and speed up program execution. It is therefore advantageous to define these operations in such a way that the result type is always the same independently on the input values. We can also often replace the typical tagged union, which is used to represent a JavaScript value, with the value itself.
+Because variables, and general bindings, in JavaScript are dynamically typed, many operations with them start with a type check and the selection of correct behavior of the operation. With statically typed bindings, however, we can perform this selection at compile time and speed up program execution. It is therefore advantageous to define these operations in such a way that the result type is always the same independently on the input values. We can also often replace the typical tagged union, which is used to represent a JavaScript value, with only a value without tag.
 
 New implicit conversions are defined for the types \texttt{int32} and \texttt{float64}. When an arithmetic operation, except exponentiation, is performed, the following rules are applied:
 
 \begin{itemize}
-    \item If both operands are of the type \texttt{int32}, no conversion is performed and the operation is performed using standard 32-bit integer arithmetic.
+    \item If both operands are of the type \texttt{int32}, no conversion is performed and the operation is performed using standard 32-bit integer arithmetic with overflow.
     \item If one of the operands is of the type \texttt{float64} and the other is either \texttt{int32} or \texttt{float64}, the \texttt{int32} operand is converted to \texttt{float64} and the operation is performed in the floating point domain.
     \item If one of the operands is of a different type than \texttt{int32} or \texttt{float64}, the operation is performed by the standard JavaScript rules. In this case, operands of the types \texttt{int32} and \texttt{float64} are converted to the type \texttt{number}.
 \end{itemize}
