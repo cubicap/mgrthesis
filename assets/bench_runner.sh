@@ -6,18 +6,19 @@ if [ -z "$1" ]; then
 fi
 
 BENCH_CMD=$1
-TIME_CMD="/usr/bin/time --output /dev/stdout --format %e;%U;%S"
-RESULTS_HEADER="real_time user_time sys_time options"
-RESULTS_FORMAT="%-12s %-12s %-12s %s\n"
+RESULTS_HEADER="init_time run_time options"
+RESULTS_FORMAT="%-12s %-12s %s\n"
 
 
 get_results_file() {
     local dir=$1
-    local test=$2
+    local sub=$2
 
-    local results_file="results/${dir}/${test}.csv"
+    local test=$(basename "${dir}")
+
+    local results_file="out/bench_raw/${test}/${sub}.csv"
     if [ ! -f "${results_file}" ]; then
-        mkdir -p "results/${dir}"
+        mkdir -p "$(dirname "${results_file}")"
     fi
     echo "${results_file}"
 }
@@ -31,7 +32,7 @@ run_benchmark() {
     echo "${dir}/${sub} with options: ${options}"
 
     pushd "${dir}/${sub}"
-    res=$( ${TIME_CMD} ${BENCH_CMD} ${options} )
+    res=$( ${BENCH_CMD} ${options} )
     popd
 
     if [ $? -ne 0 ]; then
@@ -42,7 +43,6 @@ run_benchmark() {
     printf "${RESULTS_FORMAT}" \
         "$(echo "${res}" | cut -d';' -f1)" \
         "$(echo "${res}" | cut -d';' -f2)" \
-        "$(echo "${res}" | cut -d';' -f3)" \
         "${options}" \
     >> $( get_results_file "${dir}" "${sub}" )
 

@@ -1,26 +1,26 @@
 \chapter{Implementation}
 
-The compilation pipeline consists of multiple phases. The input is the content of a single TypeScript file, and the output is runnable JavaScript code with stubs referring to generated native functions.
+The compilation pipeline consists of multiple phases. Its input is the content of a single TypeScript file, and its output is compliant JavaScript code. This code references \textit{stubs}. Stubs are JavaScript functions, call of which performs a call to a compiled function. They are made available to the interpreter before execution.
 
 
 \section{Parser}
 
-The first phase of the compilation pipeline involves parsing the input source code. The TypeScript code is converted to an abstract syntax tree (AST) using a recursive descent parser. The design of the parser is inspired by the parser described in the book \textit{Crafting Interpreters}\cite{craftinginterpreters}. The parser includes a tokenization step which converts the input source code into a stream of tokens, which are then processed using recursive descent.
+The first phase of the compilation pipeline involves parsing the input source code. The TypeScript code is converted to an abstract syntax tree (AST) using a recursive descent parser. The design of the parser is inspired by the parser described in the book \textit{Crafting Interpreters}~\cite{craftinginterpreters}. The parser includes a tokenization step which converts the input source code into a stream of tokens, which are then processed by a recursive descent parser.
 
-Recursive descent parser is an LL parser which uses a top-down approach. It is usually implemented by transforming each grammar rule into a function. When a function for a rule is called, it tries to match the input against the rule by recursively calling the functions for its sub-rules.
+Recursive descent is a technique for constructing an LL parser which uses a top-down approach. It can be implemented by transforming each grammar rule into a function. When a function for a rule is called, it tries to match the input against the rule by recursively calling the functions for its sub-rules.
 
-While recursive parsers are easy to implement and understand, they are not able to parse all grammars. In particular, they cannot parse grammars with left recursion. Because the language grammar, as described in Section \ref{lang:grammar}, is left recursive slight modifications to the grammar and the algorithm are needed.
+While recursive parsers are easy to implement and understand, they are not able to parse left-recursive all grammars. Because the language grammar, as described in Section \ref{lang:grammar}, is left-recursive, slight modifications to the grammar and the algorithm are needed.
 
-Infix binary expressions are a case of left recursion in the grammar. They are instead parsed using a cover grammar which is later refined into the correct expression tree. In general, a cover grammar is a more general grammar which is easier to parse but may not produce an equivalent parse tree. The cover grammar is then refined into the correct parse tree using a separate algorithm. The cover grammar used for parsing infix binary expressions is defined as follows:
+Infix binary expressions are a case of left recursion in the grammar. They are instead parsed using a cover grammar\footnote{A cover grammar is a more general grammar which is easier to parse but may not produce an equivalent parse tree. The cover grammar is then refined into the correct tree using a separate algorithm} which is later refined into the correct expression tree. Because the grammar notation from the specification cannot describe iteration, the cover grammar is described using EBNF~\cite{iso14977}:
 
-\todo{fix typesetting iteration}
-\GrammarRule[BinaryExpression]{}{
-    \nonterminal[UnaryExpression]{}{} \gramiter{\nonterminal[InfixBinaryOperator]{}{} \nonterminal[UnaryExpression]{}{}}
-}
+\begin{minted}{ebnf}
+BinaryExpression = UnaryExpression,
+                   { InfixBinaryOperator, UnaryExpression }
+\end{minted}
 
-The result is a flat representation of the expression without regard to the operator precedence and associativity. It is then refined to the correct expression tree using Shunting Yard algorithm\cite{algol60}.
+The result is a flat representation of the expression without regard to operator precedence and associativity. It is then refined to the correct expression tree using Shunting Yard algorithm~\cite{algol60}.
 
-Another case of left recursion in the grammar are the non-terminals \nonterminal[MemberExpression]{}{} and \nonterminal[CallExpression]{}{}. In both cases, there are multiple productions with left recursion. Fortunately, all of these productions represent a repeated application of a rule. Therefore, they can be parsed iteratively and then transformed into a correct AST. The non-left recursive productions are always applied first, and the left recursive productions are applied in a loop until no more productions can be applied. The grammar for these two non-terminals is defined as follows:
+Another cases of left recursion in the grammar are the non-terminals \nonterminal[MemberExpression]{}{} and \nonterminal[CallExpression]{}{}. In both cases, there are multiple productions with left recursion. Fortunately, all of these productions represent a repeated application of a rule. Therefore, they can be parsed iteratively and then transformed into a correct AST. The non-left recursive productions are always applied first, and the left recursive productions are applied in a loop until no more productions can be applied. The grammar for these two non-terminals is defined as follows:
 
 \GrammarRule[MemberExpression]{Yield, Await}{
     \nonterminal[SuperProperty]{?Yield, ?Await}{} \\
@@ -47,95 +47,186 @@ Another case of left recursion in the grammar are the non-terminals \nonterminal
 The remaining left recursive productions represent simple lists of items and can be, again, parsed iteratively. These non-terminal are: \nonterminal[FormalParameters]{}{}, \nonterminal[Expression]{}{} (comma operator), \nonterminal[LexicalDeclaration]{}{}, \nonterminal[VariableDeclaration]{}{}, \nonterminal[Arguments]{}{}, and \nonterminal[StatementList]{}{}.
 
 
+\section{AST}
+
+An abstract syntax tree (AST) is a hierarchical representation of a program's syntactic structure \cite{dragon}. It is a tree generated by the parser, where every node corresponds to a syntactic construction in the input program.
+
+There are two main kinds of AST nodes -- statements and expressions. Statements describe execution steps in a part of a program and control flow. Expressions may be used as part of statements, and their evaluation results in a value which may be used by another expression. Expressions may also be part of an \textit{expression statement}, which evaluates an expression and ignores its result.\todo{???}
+
+Aside from the two above, a program contains declarations of variables and functions. A function declaration consists of two parts: a signature and a body. Top level function declarations are further processed by the next step.
+
+
 \section{Generating the intermediate representation}
 
 After parsing the input source code, the compiler generates an intermediate representation (IR) of the program. The IR is described in detail in Chapter~\ref{ir}.
 
-The IR generator traverses the AST and collects all top-level function declarations. From these functions, those suitable for compilation are selected for further processing. The selected functions are then compiled to the IR.
+The IR generator first traverses the AST and collects all top-level function declarations. From these functions, those suitable for compilation are selected for further processing. The selected functions are then compiled to the IR.
 
-Every function in the AST consists of two parts: a signature and a body. First, the IR generator iterates over all function declarations and creates a list of all possibly compilable functions. In this step, a function is considered compilable if the function signature contains type annotations for all parameters and the return type. The list allows the generator to determine which functions are to be compiled and to insert native calls in relevant places. Then, the function bodies are processed independently on a per-function basis. If compilation of one of these functions fails, the entire compilation process fails with a \texttt{SyntaxError} exception and the input program cannot be executed.
+First, the IR generator iterates over all function declarations and creates a list of all possibly compilable functions. In this step, a function is considered compilable if the function signature contains type annotations for all parameters and the return type. The list allows the generator to determine which functions are to be compiled and to insert native calls in relevant places. Then, the function bodies are processed independently on a per-function basis. If compilation of one of these functions fails, the entire compilation process fails with a \texttt{SyntaxError} exception and the input program cannot be executed\footnote{While the program may still be valid and, after stripping type annotations, run by a JavaScript interpreter, the behavior of a compiled function may differ from standard JavaScript. We report an error and let the programmer fix it, rather than make the behavior of a program hard to predict.}.
 
 The statements in the function body are recursively traversed by the compiler and the AST is transformed into the intermediate representation described in Chapter \ref{ir}.
 
-The IR generator is implemented as a number of functions which describe the generation process for different AST nodes. These functions keep track of the context of IR generation, in particular, lexical and variable declarations and their scopes, the active basic block, break and continue targets, and the rest of the CFG that is being created.\todo{?}
+The IR generator is implemented as a number of functions which describe the process for different AST nodes. These functions keep track of the context of IR generation, in particular:
 
-There are two kinds of AST nodes that generate a part of the IR code -- statements and expressions. When an AST node is being processed, all of its children get processed recursively. In the case of expressions, the sub-nodes have a value result, which may be used by the parent node in some way. The results can have different value types and can be used in different ways. Some may be used as assignment targets (\textit{l-values}) and some may be only used as value operands in another expression (\textit{r-values}). When l-values are to be used as value operands in another expression, they first have to be evaluated (their value is acquired).
+\begin{itemize}
+    \item lexical and variable declarations and their scopes,
+    \item the active basic block,
+    \item break and continue targets, and
+    \item the rest of the CFG that is being created
+\end{itemize}
 
-The resulting value type of some AST node can not be determined by the node type alone, and depends on the subtree of the node. For example, a \nonterminal[PrimaryExpression]{}{} node may represent a variable (an l-value) or a literal (an r-value). The IR generator therefore first generates the IR code for the sub-nodes and only then determines the value type of the node.
+A new instruction is always emitted to the end of an active basic block.\todo{?}
 
-Sometimes, the final value type of evaluated sub-node may be incompatible with what the parent node expects. In these cases, the input code contains syntax error, because static semantics of the language are violated. The IR generator will then throw a \texttt{SyntaxError} exception and abort the compilation process.
+Results of expressions can have different value categories which can be used in different ways. Some may be used as assignment targets (\textit{l-values}) and some may be only used as value operands (\textit{r-values}). When l-values are to be used as value operands in another expression, their value needs to be acquired first.
 
-When a value is saved into an IR register, its reference count needs to be updated. This operation is implemented by a \texttt{Dup} instruction which is emitted. The reference count needs to be decreased after the value is no longer needed. To avoid analyzing the code and finding the correct places to perform this task, the value is saved using the \texttt{PushFree} instruction and the reference count is decreased before returning from the function.
+The type category of the result of some expressions cannot be determined by the node type alone, and depends on the subtree of the node. For example, a \nonterminal[PrimaryExpression]{}{} node may represent a variable (an l-value) or a literal (an r-value). The IR generator therefore first generates the IR code for child nodes and only then determines the value type of the parent node.
 
-The process of generating the IR code itself can be viewed as two simple cases -- linear code, and branching code. Generating linear code is trivial, as the respective AST nodes are simply replaced by their counterparts consisting of IR instructions. These can be directly emitted to the currently active basic block.
+Sometimes, the final type category of a child node may be incompatible with what the parent node expects. In these cases, the input code contains syntax error, because static semantics of the language are violated. The IR generator fails with \texttt{SyntaxError} exception and aborts the compilation process.
 
-When generating branching code, the active basic block has to be split into two parts -- entry, and exit. The entry block contains the original code without a terminator instruction while the exit block retains only the terminator instruction. The branching code is then simply emitted into the entry block and a number of newly created blocks for all new paths. Paths that do not terminate, or contain non-linear\todo{check} control flow (i.e., \texttt{break} or \texttt{continue} statements) must all converge to the exit block.
+When a value is saved into an IR register, its reference count needs to be incremented. This operation is implemented by a \texttt{Dup} instruction which is emitted. The reference count needs to be decreased after the value is no longer needed. To avoid analyzing the code and finding the correct places to perform this task, the value is saved using the \texttt{PushUnref} instruction and the reference count is decreased before returning from the function.
+
+The process of generating the IR itself can be viewed as two simple cases -- linear code, and branching code. Generating linear code is simple, as the respective AST nodes are just replaced by their counterparts consisting of IR instructions. These can be directly emitted to the currently active basic block.
+
+When generating branching code, the active basic block has to be split into two parts -- entry, and exit. The entry block contains the original code without a terminator instruction while the exit block retains only the terminator instruction. The branching code is then simply emitted into the entry block and a number of newly created blocks for all new paths. Paths that do not contain non-linear\todo{check} control flow (e.g., \texttt{break} or \texttt{return} statements) must all converge to the exit block. The exit block then becomes the new active block.
 
 
 \subsection{Examples of IR generation}
 
 The following examples illustrate the process of generating the IR from different AST nodes.
 
-Figure \ref{fig:irgen:if} shows an example of generating the IR for an \texttt{if} statement. The left side shows part of the CFG before processing the \texttt{if} statement -- the active basic block already contains some code (shown by the \texttt{<PrevCode>} line) and has some terminator instruction \texttt{<Terminator1>}.
+\paragraph{If} Figure \ref{fig:irgen:if} shows an example of generating the IR for an \texttt{if} statement. The left side shows part of the CFG before processing the \texttt{if} statement -- the active basic block already contains some code (shown by the \texttt{<PrevCode>} line) and has some terminator instruction \texttt{<Terminator1>}.
 
-First the active basic block is split into two parts -- named \texttt{Pre} and \texttt{Post}. The \texttt{Pre} block contains the original code and remains active, while the \texttt{Post} block retains only the terminator instruction from the original block. The code of condition expression is generated into the active (\texttt{Pre}) block and a \texttt{Branch} instruction is set as the terminator. Blocks \texttt{True} and \texttt{False} are created, and set as the targets of the branch instruction. The terminator of both blocks is set to \texttt{Jump} (unconditional jump) with target \texttt{Post}. The code of each branch is generated by setting the respective block as active and recursively generating the code for the branch statement. Finally, the \texttt{Post} block is set as the active block and generating of the \texttt{if} statement is finished.
+
+\begin{enumerate}[noitemsep]
+    \item First the active basic block is split into two parts -- \texttt{Pre} and \texttt{Post}. The \texttt{Pre} block contains the original code and remains active, while \texttt{Post} retains only the terminator instruction from the original block.
+    \item The code of condition expression is generated into the active (\texttt{Pre}) block and a \texttt{Branch} instruction is set as the terminator.
+    \item Blocks \texttt{True} and \texttt{False} are created, and set as the targets of the branch instruction.
+    \item The terminator of both blocks is set to \texttt{Jump} (unconditional jump) with target \texttt{Post}.
+    \item The code of each branch is generated by setting the respective block as active and recursively generating the code for the branch statement.
+    \item Finally, the \texttt{Post} block is set as the active block and generating of the \texttt{if} statement is finished.
+\end{enumerate}
+
+\paragraph{While} Figure \ref{fig:irgen:while} shows generating the IR for a \texttt{while} statement. Again, the left side shows the initial active basic block with some code and a terminator instruction. The process is similar to the \texttt{if} statement:
+
+\begin{enumerate}[noitemsep]
+    \item The active block is first split into two parts -- \texttt{Pre} and \texttt{Post}. The \texttt{Pre} block contains the original code and \texttt{Post} keeps the terminator instruction.
+    \item Two new blocks are created -- \texttt{Cond} and \texttt{Body}.
+    \item A \texttt{Jump} instruction is set as the terminator of the \texttt{Pre} block, with target \texttt{Cond}.
+    \item A \texttt{Branch} instruction is set as the terminator of the \texttt{Cond} block, with targets \texttt{Body} and \texttt{Post}.
+    \item A \texttt{Jump} instruction is set as the terminator of the \texttt{Body} block, with target \texttt{Cond}.
+    \item The \texttt{Cond} block is set as the active block and the code for the condition expression is generated.
+    \item The \texttt{Body} block is set as the active block and the code for the body statement is generated.
+    \item Finally, the \texttt{Post} block is set as the active block and generating of the \texttt{while} statement is finished.
+\end{enumerate}
+
 
 \begin{figure}
-    \centering
-    \begin{subfigure}[a]{0.48\textwidth}
+    \begin{minipage}[t]{1\textwidth}
         \centering
-        \includegraphics[scale=0.65, draft=false]{./assets/irgen/build/if-pre.pdf}
-    \end{subfigure}
-    \begin{subfigure}[a]{0.48\textwidth}
+        \begin{minipage}{0.7\textwidth}
+            \begin{minted}{typescript}
+if (/* <Cond> */) {
+    /* <ThenCode> */
+} else {
+    /* <ElseCode> */
+}
+            \end{minted}
+        \end{minipage}
+    \end{minipage}
+    \vspace{0.5cm}
+
+    \begin{minipage}[t]{0.49\textwidth}
+        \vspace*{0mm}
         \centering
-        \includegraphics[scale=0.65, draft=false]{./assets/irgen/build/if-post.pdf}
-    \end{subfigure}
-    \caption{Example of IR generation for an \texttt{if} node. The left side shows an active basic block before processing the node. The right side shows a CFG generated from the node.}
+        \includegraphics[scale=0.5, draft=false]{./assets/out/irgen/if-pre.pdf}
+    \end{minipage}
+    \begin{minipage}[t]{0.49\textwidth}
+        \vspace*{0mm}
+        \centering
+        \includegraphics[scale=0.5, draft=false]{./assets/out/irgen/if-post.pdf}
+    \end{minipage}
+
+    \caption{Example of IR generation for an \textit{IfStatement}. The left side shows an active basic block before processing the node. The right side shows a CFG generated from the node.}
     \label{fig:irgen:if}
 \end{figure}
 
+\begin{figure}
+    \begin{minipage}[t]{1\textwidth}
+        \centering
+        \begin{minipage}{0.7\textwidth}
+            \begin{minted}{typescript}
+while (/* <Cond> */) {
+    /* <BodyCode> */
+}
+            \end{minted}
+        \end{minipage}
+    \end{minipage}
+    \vspace{0.5cm}
 
-\subsection{Runtime requirements of IR function}\todo{find a better title}\label{subsec:irruntime}
+    \begin{minipage}[t]{0.49\textwidth}
+        \vspace*{0mm}
+        \centering
+        \includegraphics[scale=0.5, draft=false]{./assets/out/irgen/while-pre.pdf}
+    \end{minipage}
+    \begin{minipage}[t]{0.49\textwidth}
+        \vspace*{0mm}
+        \centering
+        \includegraphics[scale=0.5, draft=false]{./assets/out/irgen/while-post.pdf}
+    \end{minipage}
 
-There are very few requirements on how a function represented by the intermediate representation should behave. The values in IR registers can be stored in any way, be it in CPU registers, in stack memory, or in a different way. There is also no standardized calling convention. The execution environment must only arrange for the function arguments to be passed to the correct IR registers, and the return value to be passed back to the caller.\todo{move to IR chapter?}
+    \caption{Example of IR generation for a \textit{WhileStatement}. The left side shows an active basic block before processing the node. The right side shows a CFG generated from the node.}
+    \label{fig:irgen:while}
+\end{figure}
 
-A function in the IR requires access to the instance of the JavaScript interpreter it runs under. To implement the \texttt{PushFree} instruction, it also needs a secondary stack (or another container) for storing all values that need to be freed at exit.
 
+\pagebreak
+\section{MIR backend}
 
-\section{Compiler backend}
+The compiler relies on the MIR backend to perform register allocation, code generation, and optimization of the machine code. MIR generates functions with a calling convention native to the platform.
 
-The compiler relies on the MIR compiler backend to perform register allocation, code generation, and optimization of the machine code. MIR generates functions with a standard calling convention for target platform.
+The generated functions are created in two variants -- one with argument types matching the signature of the function, and a companion which receives arguments as an array of JavaScript values. The first of these functions is used when compiled functions interact with each other, while the second is called from stubs available in QuickJS.
 
-The signature of generated functions is not compatible with the signature of functions callable from QuickJS. Therefore, for every compiled function, a companion function with a compatible signature is generated.
+MIR code is generated by simply replacing parts of the IR with the respective MIR representation. Some simple instructions can be replaced by a single MIR instruction, some more complex are replaced by multiple MIR instructions or a function call.
 
-The MIR code is generated by simply replacing parts of the IR with the respective MIR representation. Some simple instructions can be replaced by a single MIR instruction, some more complex are replaced by multiple MIR instructions or a function call.
+MIR represents a control flow graph, similarly to our IR. The CFG in MIR closely mirrors the CFG of the function in our IR. Some additional blocks are created to represent the function exit and the exception handling code.
 
-The final, native, functions require a runtime context, as described in Section \ref{subsec:irruntime}. The context primarily contains a pointer to an instance of the JavaScript interpreter. It also contains a secondary stack used by the \texttt{PushFree} instruction. Lastly, it stores an information about whether an exception has occurred in the function.
+The final, native, functions require a runtime context, as described in Section \ref{ir:vm}. The context primarily contains a pointer to an instance of the JavaScript interpreter. It also contains a secondary stack used by the \texttt{PushUnref} instruction. Lastly, it stores information about whether an exception has been thrown in the function.
 
 Some instructions and function calls may result in a JavaScript exception. For these, additional checks are inserted into the MIR code. These checks use the exception flag in the runtime context to determine whether an exception has occurred. If an exception occurs, the function returns a default value and the exception flag is set. The caller of the function then checks the exception flag and propagates the exception further up the call stack.
 
-These functions are statically bound to a single JavaScript runtime and can not be shared between multiple runtime instances. This allows the functions to use the same runtime context through a constant pointer that is linked to them at compilation.
+These functions are statically bound to a single JavaScript runtime and cannot be shared between multiple runtime instances. This allows the functions to use the same runtime context through a constant pointer that is linked to them at compilation.
+
+
+\subsection{Representation of values}
+
+Values in JavaScript have a dynamic type, which may fall into one of several categories. In QuickJS, they are represented using a tagged union -- a structure with two 64-bit values representing the tag and a value. In the generated MIR code, this representation is used for the type \texttt{Any}.
+
+Because registers in our intermediate representation are strongly typed, we know the type a value has without the need of a tag at runtime. We can therefore omit the type for some types and only keep their value which fits into a single local variable in MIR.
+
+Some values (e.g., \texttt{Number}, \texttt{Null}) are placed directly into the tagged union while others (e.g., \texttt{Object}, \texttt{String}) are allocated on the heap and the structure only contains a pointer to the value. QuickJS uses reference counting with cycle detection for memory management of values which require memory allocation. QuickJS provides an API for changing the reference count, which is used from the generated MIR code.
 
 
 \section{Stubs}\label{impl:stubs}
 
-After compiling the functions to native code, they need to be made accessible to the interpreter. The compiled functions are therefore wrapped in JavaScript function objects (stubs) which, when called from JavaScript, perform a native call to the compiled function. They are then defined as properties of JavaScript's global object\footnotemark[1] with unique identifiers.
+After compiling the functions to native code, they need to be made accessible to the interpreter. The compiled functions are therefore wrapped in JavaScript function objects (stubs) which, when called from JavaScript, perform a native call to the compiled function. They are then defined as properties of JavaScript's global object\footnotemark[1] with unique identifiers. This task is performed from C++ code using an API to access the JavaScript runtime.
 
 \footnotetext[1]{In JavaScript, a global object is a special object \texttt{globalThis} which is globally accessible from an execution context (i.e., including different modules). Properties of the global object are a part of the lexical scope, and one of its functions is to provide intrinsic objects and values to the execution environment.}
 
 New JavaScript source code is also generated. In this source code, the original declarations of compiled functions are replaced by references to the stubs, and by comments with the original function's source code.
 
-JavaScript applies declaration and value hoisting on function declarations. This means that in a standard JavaScript program, it is possible to reference and use a function before it is declared. In the newly generated code, we can only replicate this behavior by declaring a new function which would call the stub function. Declaring a new function would result in another level of indirection in every call of this function and induce unnecessary overhead.
+JavaScript applies declaration and value hoisting\footnotemark[2] on function declarations. This means that in a standard JavaScript program, it is possible to reference and use a function before it is declared. In the newly generated code, we can only replicate this behavior by declaring a new function which would call the stub function. Declaring a new function would result in another level of indirection in every call of this function and add unnecessary overhead.
 
-As maintaining JavaScript's behavior is, in this case, not feasible without modifying the underlying interpreter, we have elected to change the behavior instead. For declaring the aliases for the stub functions, we use a constant lexical declaration (i.e., \texttt{const}). While the runtime semantics is slightly different, its also disallows users from rebinding the same name to a different function (or value). Such behavior would be potentially dangerous, because at compile time functions are statically linked to each other. If the user rebound a function name which was referenced from a different compiled function, they might expect a change in behavior of the compiled function which would, however, not happen. By declaring the function reference as \texttt{const}, such code would result in a syntax error instead.
+\footnotetext[2]{Hoisting is a process that allows the use of a binding before its declaration or definition. In the case of function declarations, the value is available as well.}
+
+As maintaining JavaScript's behavior is, in this case, not feasible without modifying the underlying interpreter or additional overhead, we have elected to change the behavior instead. For declaring the aliases for the stub functions, we use a constant lexical declaration (i.e., \texttt{const}). While the runtime semantics is slightly different, its also disallows users from rebinding the same name to a different function (or value). Such behavior would be potentially dangerous, because at compile time functions are statically linked to each other. If the user rebound a function name which was referenced from a different compiled function, they might expect a change in behavior of the compiled function which would, however, not happen. By declaring the function reference as \texttt{const}, such code would result in a syntax error instead.
 
 
 \section{Interpreter}
 
-The newly generated JavaScript code is then executed by the QuickJS interpreter. The interpreter is not modified and is used through the Jaculus-machine abstraction layer. After preprocessing the source code, as described in Section \ref{impl:stubs}, and defining new properties of the JavaScript's global object, the new JavaScript code is executed as normal.
+The newly generated JavaScript code is then executed by the QuickJS interpreter. The interpreter is used through the Jaculus-machine abstraction layer. After preprocessing the source code, as described in Section \ref{impl:stubs}, and defining new properties of the JavaScript's global object, the new JavaScript code is executed as normal.
 
 \section{Integration with Jaculus-machine}
 
-Jaculus-machine uses a modular approach which allows the programmer to select which modules should be a part of a JavaScript runtime (called \textit{Machine}). Jaculus-machine calls these modules \textit{MFeatures}. The configuration of a selected set of MFeatures is performed at compile time which allows the individual MFeatures to interact with one another without significant overhead caused by dynamic bindings.
+Jaculus-machine provides a modular way of configuring a JavaScript runtime (called \textit{Machine}) by assembling it from individual modules (called \textit{MFeatures}). The configuration of a selected set of MFeatures is performed at compile time which allows the individual MFeatures to interact with one another without significant overhead caused by dynamic binding.
 
 The compiler implementation is provided as a single MFeature, which provides a method \texttt{eval} for executing input source code. The source code is always processed by the compiler and the generated code is executed.

@@ -1,5 +1,11 @@
 --mode aot --path aotFloat.js --count 100 -Ds=0 -Dn=100
+--mode aot --path aotFloat.js --count 100 -Ds=100 -Dn=100
+--mode aot --path aotFloat.js --count 100 -Ds=200 -Dn=100
+--mode aot --path aotFloat.js --count 100 -Ds=300 -Dn=100
+--mode aot --path aotFloat.js --count 100 -Ds=400 -Dn=100
+--mode aot --path aotFloat.js --count 100 -Ds=500 -Dn=100
+--mode aot --path aotFloat.js --count 100 -Ds=600 -Dn=100
+--mode aot --path aotFloat.js --count 100 -Ds=700 -Dn=100
+--mode aot --path aotFloat.js --count 100 -Ds=800 -Dn=100
+--mode aot --path aotFloat.js --count 100 -Ds=900 -Dn=100
 --mode aot --path aotFloat.js --count 100 -Ds=1000 -Dn=100
---mode aot --path aotFloat.js --count 100 -Ds=2000 -Dn=100
---mode aot --path aotFloat.js --count 100 -Ds=3000 -Dn=100
---mode aot --path aotFloat.js --count 100 -Ds=4000 -Dn=100

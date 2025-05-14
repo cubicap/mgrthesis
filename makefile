@@ -12,7 +12,7 @@ benchmarks:
 	cd assets; ./bench_runner.sh $(bench_exec) && ./bench_process.py
 
 irgen-viz:
-	cd assets/irgen; ./build.sh
+	cd assets; ./irgen_build.sh
 
 thesis.pdf: $(deps)
 	$(latexcmd) $< < /dev/null

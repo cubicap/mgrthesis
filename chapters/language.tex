@@ -2,26 +2,25 @@
 
 The language implemented by the compiler is a subset of JavaScript with added type annotations and slightly modified semantics of arithmetic operations. In a way, this makes it a subset of a modified TypeScript.
 
-The version of JavaScript used as the base is standardized in the ECMAScript 2023 Language Specification\cite{ecma262} -- this document serves as the primary reference for the language implemented by the compiler.
+The version of JavaScript used as the base is standardized in the ECMAScript 2023 Language Specification~\cite{ecma262} -- this document serves as the primary reference for the language implemented by the compiler.
 
-TypeScript, on the other hand, does currently not have a formal standard and relies on an official implementation which serves as a reference. The last version with an available specification was TypeScript 1.8\cite{typescript18}. This version serves as a reference for the extended grammar and semantics of our language.
+TypeScript, on the other hand, does currently not have a formal standard and relies on an official implementation which serves as a reference. The last version with an available specification was TypeScript 1.8~\cite{typescript18}. This version serves as a reference for the extended grammar and semantics of our language.
 
-While this chapter describes the full language we would like to implement, only a part of this language is currently supported by the compiler. The language features that are supported by the compiler are described later in Chapter \ref{chap:supported_lang}.
+While this chapter together with the ES specification describe the full language we would like to implement, only a part of this language is supported by the compiler. The language features that are currently supported are described later in Chapter \ref{chap:supported_lang}.
 
 
 \section{Grammar}\label{lang:grammar}
 
-The language grammar extends the grammar defined in the ECMAScript 2023 Language Specification\cite{ecma262} by allowing type annotations in function signatures and variable declarations. Grammar productions in this text are described using the same notation as is used in the specification. The notation is described in the specification in Section 5.1.5.\todo{is it ok?}
+The language grammar extends the grammar defined in the ECMAScript 2023 Language Specification~\cite{ecma262} by allowing type annotations in function signatures and variable declarations. Grammar productions in this text are described using the same notation as is used in the specification. The notation is described in the specification, Section 5.1.5.\todo{is it ok?}
 
 A type annotation is defined by the following production:
-\todo{ask variable declaration}
 
 \GrammarRule[TypeAnnotation]{}{
     \terminal{:} \nonterminal[Identifier]{}{}
 }
 
 
-The declarations of variables and type annotations then follow the following modified productions:
+The declarations of variables and type annotations then follow the following modified productions (the added \nonterminal[TypeAnnotation]{}{} non-terminal is the only change)\todo{underline}:
 
 
 \GrammarRule[VariableDeclaration]{In, Yield, Await}{
@@ -36,57 +35,56 @@ The declarations of variables and type annotations then follow the following mod
     \nonterminal[BindingIdentifier]{?Yield, ?Await}{} \nonterminal[TypeAnnotation]{}{opt} \nonterminal[Initializer]{}{opt}
 }
 
+Because context-free grammars are not powerful enough to represent the set of all valid JavaScript programs, the language also defines so-called \textit{static semantics}. These are additional rules associated with grammar productions and usually define an algorithm which decides whether the input is valid and can be evaluated.
+
+An example of a static semantics rule may be the check whether a left-hand side expression of an assignment is a valid assignment target.
+
 
 \section{Value types}\label{lang:types}
 
 There are several types available in JavaScript: \texttt{Undefined}, \texttt{Null}, \texttt{Boolean}, \texttt{String}, \texttt{Symbol}, \texttt{Number}, \texttt{BigInt}, and \texttt{Object}.
 
-All these types, except \texttt{Object}, are primitive types. Primitive types are immutable and represent the simplest values available in JavaScript. The \texttt{Object} type represents a collection of properties. Each property is identified by a String or a Symbol value, and its value can be of any type. An object is generally mutable, and its properties can be added, removed, and modified. Some objects are callable as functions or constructors.
+All these types, except \texttt{Object}, are primitive types. Primitive types are immutable and represent the simplest values available in JavaScript. The \texttt{Object} type represents a collection of properties. Each property is identified by a \texttt{String} or \texttt{Symbol} value, and its value can be of any type. An object is generally mutable, and its properties can be added, removed, and rebound. Some objects are callable as functions or class constructors.
 
-The \texttt{Number} type is a double-precision 64-bit format IEEE 754-2019\cite{ieee754} floating point number. The \texttt{BigInt} type is a signed integer of arbitrary precision. The limited options of numeric types in JavaScript are a weak point of the language in regard to running on microcontrollers.
+The \texttt{Number} type is a double-precision 64-bit format IEEE 754-2019~\cite{ieee754} floating point number. The \texttt{BigInt} type is a signed integer of arbitrary size\todo{precision?}.
 
-Because many microcontrollers do not have a 64-bit FPU\footnote{FPU: floating-point unit}, it is desirable to avoid floating point operations whenever possible. While many interpreters, including QuickJS, use an integer type (typically with 32 bits) to represent some values of the \texttt{number} type as an optimization, when the result of an operation does not fit in this type, the operands have to be promoted to a floating point number and the operation has to be performed in the floating point domain. Even if a program is written so that no floating point operations are performed, this approach still has two downsides:
+Because many microcontrollers do not have a 64-bit FPU (floating-point unit), it is desirable to avoid floating point operations whenever possible. While many interpreters, including QuickJS, use an integer type (typically with 32 bits) to represent some values of the \texttt{Number} type as an optimization, when the result of an operation does not fit in this type, the operands have to be promoted to a floating point number and the operation has to be performed in the floating point domain. Even if a program is written so that no floating point operations are performed, this approach still has two downsides:
 \begin{itemize}
     \item every arithmetic operation contains an overflow check, and
-    \item the \texttt{number} type is a tagged union.
+    \item the \texttt{Number} type is a union of two types.
 \end{itemize}
 
-For this reason, we define a new primitive type \texttt{int32} which guarantees that all arithmetic operations with two \texttt{int32} operands will result in a new value of the same type. The type represents a 32-bit two's complement signed integer. Operations with the type follow the standard modular arithmetic. The \texttt{int32} type can be used in any other context where the specification\todo{how to abbrev?} expects a value of the type \texttt{number}. In these cases, the value behaves identical to an equivalent value of type \texttt{number}.\todo{make type name capitalization consistent}
+For this reason, we define a new primitive type \texttt{Int32} which guarantees that all arithmetic operations with two \texttt{Int32} operands will result in a new value of the same type. The type represents a 32-bit two's complement signed integer. Operations with the type follow the usual\todo{not very standardized} modular arithmetic. The \texttt{Int32} type can be used in any other context where the specification expects a value of the type \texttt{Number}. In these cases, the value behaves identical to an equivalent value of type \texttt{Number}.
 
-A new type \texttt{float64} is also defined. This type has the same semantics as the \texttt{number} type, but tells the compiler that the value should always be represented as a floating point number. Such values are easier to manipulate and operations can be faster if the value is expected to usually not be a small integer (in contrast to a more optimized \texttt{Number} type).
+A new type \texttt{Float64} is also defined. This type has the same semantics as the \texttt{Number} type, but tells the compiler that the value should always be represented as a floating point number. Such values are easier to manipulate and operations can be faster if the values are expected not to take advantage of an optimized \texttt{Number} type.
 
 For the use in type annotations, the following type names are allowed:
 \begin{itemize}
     \item \texttt{int32} -- 32-bit signed integer,
     \item \texttt{float64} -- 64-bit floating point number,
     \item \texttt{boolean} -- boolean value,
-    \item \texttt{object} -- object reference (but not a primitive value including null),
-    \item \texttt{any} -- any value (JavaScript's dynamic type),
-    \item \texttt{void} -- no value (i.e., the function does not return anything).
+    \item \texttt{object} -- object reference (but not a primitive value -- e.g., \texttt{null}),
+    \item \texttt{any} -- any value (JavaScript's dynamic type -- may contain any value, including those not listed above like \texttt{undefined}),
+    \item \texttt{void} -- no return value (in JavaScript treated as \texttt{undefined}).
 \end{itemize}
 
 While the list is quite limited and not well usable for checking the correct usage of more complex types, it is sufficient for allowing the compiler to perform some optimizations of the usage of primitive types.
 
-\todo{reference counting}
-
 
 \section{Language semantics}\label{lang:semantics}
 
-The semantics of the implemented language are the same as described in the ECMAScript 2023 Language Specification\cite{ecma262} except for the cases described below\todo{TS}.
+The semantics of the implemented language are the same as described in the ECMAScript 2023 Language Specification~\cite{ecma262} except for the cases described below.
 
-Because variables, and general bindings, in JavaScript are dynamically typed, many operations with them start with a type check and the selection of correct behavior of the operation. With statically typed bindings, however, we can perform this selection at compile time and speed up program execution. It is therefore advantageous to define these operations in such a way that the result type is always the same independently on the input values. We can also often replace the typical tagged union, which is used to represent a JavaScript value, with only a value without tag.
+Because variables, and bindings in general, in JavaScript are dynamically typed, many operations with them start with a type check and the selection of correct behavior of the operation. With statically typed bindings, however, we can perform this selection at compile time and speed up program execution. It is therefore advantageous to define these operations in such a way that the result type is always the same independently on the input values. We can also often replace the typical tagged union, which is used to represent a JavaScript value, with only a value without the tag.
 
-New implicit conversions are defined for the types \texttt{int32} and \texttt{float64}. When an arithmetic operation, except exponentiation, is performed, the following rules are applied:
+New implicit conversions are defined for the types \texttt{Int32} and \texttt{Float64}. When an arithmetic operation, except exponentiation, is performed, the following rules are applied:
 
 \begin{itemize}
-    \item If both operands are of the type \texttt{int32}, no conversion is performed and the operation is performed using standard 32-bit integer arithmetic with overflow.
-    \item If one of the operands is of the type \texttt{float64} and the other is either \texttt{int32} or \texttt{float64}, the \texttt{int32} operand is converted to \texttt{float64} and the operation is performed in the floating point domain.
-    \item If one of the operands is of a different type than \texttt{int32} or \texttt{float64}, the operation is performed by the standard JavaScript rules. In this case, operands of the types \texttt{int32} and \texttt{float64} are converted to the type \texttt{number}.
+    \item If both operands are of the type \texttt{Int32}, no conversion is performed and the operation is performed using 32-bit integer arithmetic with overflow.
+    \item If one of the operands is of the type \texttt{Float64} and the other is either \texttt{Int32} or \texttt{Float64}, the \texttt{Int32} operand is converted to \texttt{Float64} and the operation is performed in the floating point domain.
+    \item If one of the operands is of a different type than \texttt{Int32} or \texttt{Float64}, the operation is performed by the standard JavaScript rules. In this case, operands of the types \texttt{Int32} and \texttt{Float64} are converted to the type \texttt{Number}.
 \end{itemize}
 
-In other contexts where the types \texttt{int32} and \texttt{float64} are not directly supported, the values are first converted to the type \texttt{number} and treated as such\footnote{While the behavior of these types is described using a conversion, it is expected that the values are only treated in the same way, and an optimization is performed}.
+In other contexts where the types \texttt{Int32} and \texttt{Float64} are not directly supported, the values are first converted to the type \texttt{Number} and treated as such\footnote{While the behavior of these types is described using a conversion, it is expected that the values are only treated in the same way, and an optimization is performed}.
 
-\todo{linkage}
-
-
-\todo{TS -- types are not nullable}
+Because variables are statically typed, when an assignment is performed, the right-hand side operand is first converted to the type of the variable and only then assigned. The same conversion is also performed to a return value. In the case of some conversions, the exact value may not be changed (e.g., from \texttt{Int32} to \texttt{Any}), while in some cases the result may be different (e.g., from \texttt{Float64} to \texttt{Int32}).
