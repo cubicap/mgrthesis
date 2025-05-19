@@ -1,10 +1,10 @@
+--mode aot --path aot.js --count 100 -Dx=5
 --mode aot --path aot.js --count 100 -Dx=10
+--mode aot --path aot.js --count 100 -Dx=15
 --mode aot --path aot.js --count 100 -Dx=20
+--mode aot --path aot.js --count 100 -Dx=25
 --mode aot --path aot.js --count 100 -Dx=30
+--mode aot --path aot.js --count 100 -Dx=35
 --mode aot --path aot.js --count 100 -Dx=40
+--mode aot --path aot.js --count 100 -Dx=45
 --mode aot --path aot.js --count 100 -Dx=50
---mode aot --path aot.js --count 100 -Dx=60
---mode aot --path aot.js --count 100 -Dx=70
---mode aot --path aot.js --count 100 -Dx=80
---mode aot --path aot.js --count 100 -Dx=90
---mode aot --path aot.js --count 100 -Dx=100

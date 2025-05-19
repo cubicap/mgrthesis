@@ -63,7 +63,7 @@ def process_output(rel_path: str) -> None:
         for row in out_rows:
             write_row(row)
 
-    init_time_sum = 0
+    init_time_sum = 0.
     for row in out_rows:
         init_time_sum += float(row[INIT_COL])
 
