@@ -1,0 +1,12 @@
+init_time    run_time     options
+2.22358      0.974347     --mode interp --path interp.js --count 100 -Ds=0 -Dn=100
+2.21161      52.5848      --mode interp --path interp.js --count 100 -Ds=50 -Dn=100
+2.22419      104.743      --mode interp --path interp.js --count 100 -Ds=100 -Dn=100
+2.23833      156.919      --mode interp --path interp.js --count 100 -Ds=150 -Dn=100
+2.22116      209.134      --mode interp --path interp.js --count 100 -Ds=200 -Dn=100
+2.22364      261.464      --mode interp --path interp.js --count 100 -Ds=250 -Dn=100
+2.2216       315.048      --mode interp --path interp.js --count 100 -Ds=300 -Dn=100
+2.22411      369.163      --mode interp --path interp.js --count 100 -Ds=350 -Dn=100
+2.22946      422.32       --mode interp --path interp.js --count 100 -Ds=400 -Dn=100
+2.22904      475.181      --mode interp --path interp.js --count 100 -Ds=450 -Dn=100
+2.23424      528.43       --mode interp --path interp.js --count 100 -Ds=500 -Dn=100

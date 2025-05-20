@@ -1,0 +1,12 @@
+init_time    run_time     options
+7.98228      0.0406374    --mode aot --path aot.js --count 100 -Dx=0
+7.79579      0.0421385    --mode aot --path aot.js --count 100 -Dx=3
+7.79781      0.0458671    --mode aot --path aot.js --count 100 -Dx=6
+7.78869      0.0547051    --mode aot --path aot.js --count 100 -Dx=9
+7.77396      0.0830566    --mode aot --path aot.js --count 100 -Dx=12
+7.76987      0.207932     --mode aot --path aot.js --count 100 -Dx=15
+7.77899      0.740846     --mode aot --path aot.js --count 100 -Dx=18
+7.76105      3.04455      --mode aot --path aot.js --count 100 -Dx=21
+7.72826      12.3885      --mode aot --path aot.js --count 100 -Dx=24
+7.73932      53.3247      --mode aot --path aot.js --count 100 -Dx=27
+7.7417       225.496      --mode aot --path aot.js --count 100 -Dx=30

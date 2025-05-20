@@ -1,12 +1,12 @@
 digraph {
   node [shape=record fontname="Noto Mono"];
   edge [fontname="Noto Mono"];
-  block0x5642d22bcfa0 [label="{Pre|\<PrevCode\>\l}"];
+  block0x5642d22bcfa0 [label="{Pre|\<PrevCode\>\l|Jump\l}"];
   block0x5642d22bcfa0 -> block0x5642d22bd0e0;
-  block0x5642d22bd0e0 [label="{Cond|_1:b ← \<EvalCond\>\lPushFree _1:b\l|if (_1)}"];
+  block0x5642d22bd0e0 [label="{<top>Cond|_1:b ← \<EvalCond\>\lPushFree _1:b\l|Branch _1\l}"];
   block0x5642d22bd0e0 -> block0x5642d22bd120 [label="true"];
   block0x5642d22bd0e0 -> block0x5642d22bd180 [label="false"];
-  block0x5642d22bd120 [label="{Body|\<BodyCode\>\l}"];
-  block0x5642d22bd120 -> block0x5642d22bd0e0;
-  block0x5642d22bd180 [label="{Post|\<---\>\l|Terminator1}"];
+  block0x5642d22bd120 [label="{Body|\<BodyCode\>\l|<term>Jump\l}"];
+  block0x5642d22bd120:term:w -> block0x5642d22bd0e0:top:w;
+  block0x5642d22bd180 [label="{Post|\<---\>\l|Terminator1\l}"];
 }

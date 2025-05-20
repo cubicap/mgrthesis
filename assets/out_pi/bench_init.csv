@@ -1,0 +1,7 @@
+matMul/aot.csv            13.766
+matMul/interp.csv         2.088
+graphics/aot.csv          35.180
+graphics/interp.csv       2.226
+fibRec/aotFloat.csv       7.934
+fibRec/aot.csv            7.787
+fibRec/interp.csv         1.625

@@ -1,47 +1,47 @@
 \chapter{Supported language features}\label{chap:supported_lang}
 
-Because of the extent of the language we would like to support in the compiler, only a subset is implemented. The compiler is designed to be extensible, so it is possible to extend the supported features with reasonable effort. This chapter describes the language features that are currently supported by the compiler and notes important features whose support is missing.
+Only a subset of the language described in Chapter \ref{language} is currently implemented. This chapter describes the language features that are currently supported by the compiler and notes important features whose support is missing. The compiler is designed to be extensible, and it is possible to implement support for more features with reasonable effort.
 
 
 \section{Syntax}
 
 The parser supports only a subset of valid programs. Notably, the parser does not support general Unicode code points in many places; a program is expected to be written only using the ASCII character set. The parser does not support automatic semicolon insertion.
 
-Although only select functions are compiled, the parser still has to be able to parse the entire input program which therefore needs to adhere to the limited grammar supported by the parser. The parser supports a slightly larger subset of the language than the rest of the compiler, however, because listing all the supported features of each part of the compiler would be too verbose, the differences are omitted from this text. The source code of the parser can serve as a reference for the supported language instead.
+Although only selected functions are compiled, the parser still has to be able to parse the entire input program, which therefore needs to adhere to the limited grammar supported by the parser. The parser supports a slightly larger subset of the language than the rest of the compiler, however, because listing all the supported features of each part of the compiler would be too verbose, the differences are omitted from this text. The source code of the parser can serve as a reference for the supported language instead.
 
-The ECMAScript 2023 Language Specification~\cite{ecma262} often defines additional static semantics for many grammar productions. The compiler does not implement some of them and may produce a runnable program even if the static semantics are not satisfied -- such program may behave unexpectedly. In general, the input program is expected to be valid according to the specification for the compiler to behave correctly.
+ECMA-262~\cite{ecma262} often defines additional static semantics for many grammar productions. The compiler does not implement some of them and may produce a runnable program even if the static semantics are not satisfied -- such program may behave unexpectedly. In general, the input program is expected to be valid according to the specification for the compiler to behave correctly.
 
 
 \section{Identifiers}
 
 Various entities in the language are identified by their name. JavaScript specifies a list of conditionally reserved words which cannot be used as identifiers. The compiler does not implement these rules and instead disallows the use of any reserved word\footnotemark[1] as an identifier.
 
-JavaScript allows the use of Unicode escape sequences in identifiers which are not supported by the compiler.
+JavaScript allows the use of Unicode escape sequences in identifiers which are also not supported by the compiler.
 
-\footnotetext[1]{As specified in the grammar production \texttt{ReservedWord} in Section 12.7.2 of the ECMAScript 2023 Language Specification~\cite{ecma262}.}
+\footnotetext[1]{As specified in the grammar production \texttt{ReservedWord} in Section 12.7.2 of ECMA-262~\cite{ecma262}.}
 
 
 \section{Functions}
 
-Only ordinary function declarations (i.e., not async or generator) are supported by the runtime.
+Only ordinary function declarations (i.e., not async, or generator) are supported.
 
 Because the behavior of a function can change by compiling it to native code, the compiler does not compile all functions in the input program. Instead, only functions that contain type annotations in their signature are compiled. This allows the programmer to make a conscious decision about which functions will be compiled. These functions will always be compiled and if their compilation fails, the input program will not be executed.
 
-Functions from a single script that are compiled to native code are statically linked together. While the semantics is then different from the semantics of standard JavaScript, it could be implemented without modifying QuickJS, and makes the resulting code run faster.
+Functions from a single script that are compiled to native code are statically linked together. While the semantics is then different from the semantics of standard JavaScript, it simplifies the implementation, and makes the resulting code run faster.
 
-Compiled functions exist in an isolated space, where they can interact only with each other and their arguments. Notably, the lexical scope visible from these functions does not extend past the function body. The function code can therefore not interact with global variables or implicitly with the global object. It is, on the other hand, possible to pass any data (including the global object) as explicit parameters of a function and interact with them this way.
+The lexical scope available from compiled functions does not extend past the function body. The function code can therefore not interact with global variables or implicitly with the global object. It is, on the other hand, possible to pass any data (including the global object) as explicit parameters of a function and interact with them this way.
 
-Compiled functions also do not have access to the \texttt{arguments} object and the \texttt{this} binding.
+Compiled functions also do not have access to the \texttt{arguments} object and \texttt{this} binding.
 
 
 \section{Types}
 
-All types specified in Section \ref{lang:types} except for \texttt{Void} can be used for variables, function arguments, and as a return type. \texttt{Void} can be used only in a return type of a function.
+All type annotations specified in Section \ref{lang:types}, except for \texttt{void}, can be used for variables, function arguments, and as a return type. The annotation \texttt{void} can only be used in a return type of a function.
 
 
-\section{Variable and function declarations}
+\section{Variables}
 
-The compiler supports only lexical variable declarations. It supports only ordinary function declarations (i.e., no generators, async functions, and arrow functions). In the context of a function which is to be compiled, all arguments, return values, and local variables must have a type annotation.
+The compiler supports only lexical variable declarations (i.e., \texttt{let}, \texttt{const}). In the context of compiled functions, all declarations must contain a type annotation.
 
 In general, \textit{binding pattern} and \textit{binding rest element} are not supported. The compiler supports only the use of simple identifiers for arguments and variable declarations.
 
@@ -52,35 +52,52 @@ Standard JavaScript numeric, boolean and string literals are supported. A change
 
 String literals do not support all escape sequences.
 
-Notable literals that are not supported are object literals, array literals, and regular expression literals. These are not supported even by the parser therefore may not be used anywhere in the input program. The creation of these objects must therefore be performed by calling their corresponding constructor and by setting each property individually.
+Object, array, and regular expression literals are not supported. They are not supported even by the parser and therefore may not be used anywhere in the input program. The creation of these objects must be performed by calling their respective constructor (i.e., \texttt{Object}, \texttt{Array}, \texttt{RegExp}) and by setting each property individually.
 
 
 \section{Operators}
 
 Arithmetic, relational, and bitwise operators are implemented according to the modified semantics described in Section \ref{language}.
 
-Logical (short-circuit) operators are supported with limited operand types. Short-circuit operators only support operands of the type \texttt{Any}.
+Logical (short-circuit) operators are supported only for operands of the type \texttt{Boolean}.
 
 Update expressions (i.e., \texttt{++} and \texttt{{-}{-}}) are supported in both prefix and postfix forms.
 
-Member access operators (i.e., \texttt{.} and \texttt{[]}) are supported for operands \texttt{Object} or \texttt{Any} for the object, and string literal, \texttt{Int32} or \texttt{Any} for the identifier.
+Member access operators (i.e., \texttt{.} and \texttt{[]}) are supported for all operand types. The use of string literal and \texttt{Int32} for the identifier is optimized.
 
-Operators \texttt{.?}, \texttt{??}, \texttt{===}, and \texttt{!==} are not supported. Likewise, keyword operators (i.e., \texttt{new}, \texttt{instanceof}, \texttt{in}, \texttt{typeof}, \texttt{void}, and \texttt{delete}) are not supported.
+Constructing objects using operator \texttt{new} is supported.
+
+Operators \texttt{.?}, \texttt{??}, \texttt{===}, and \texttt{!==} are not supported. Likewise, most keyword operators (i.e., \texttt{instanceof}, \texttt{in}, \texttt{typeof}, \texttt{void}, and \texttt{delete}) are not supported.
 
 
 \section{Control flow}
 
-The compiler supports the following control flow statements:
-\begin{itemize}
-    \item \texttt{if} statement,
-    \item \texttt{while} statement,
-    \item \texttt{do while} statement,
-    \item \texttt{for} statement,
-    \item \texttt{break} statement,
-    \item \texttt{continue} statement,
-    \item \texttt{return} statement,
-    \item \texttt{throw} statement.
-\end{itemize}
+The compiler supports the following control flow statements (without labeled variants):
+\begin{multicols}{2}
+    \begin{itemize}
+        \item \texttt{if} statement,
+        \item \texttt{while} statement,
+        \item \texttt{do while} statement,
+        \item \texttt{for} statement,
+        \item \texttt{break} statement,
+        \item \texttt{continue} statement,
+        \item \texttt{return} statement,
+        \item \texttt{throw} statement.
+    \end{itemize}
+\end{multicols}
+
+\noindent
+The following control flow statements are not supported:
+\begin{multicols}{2}
+    \begin{itemize}
+        \item \texttt{switch} statement,
+        \item \texttt{for in} statement,
+        \item \texttt{for of} statement,
+        \item \texttt{with} statement,
+        \item \texttt{try} statement.
+        \vspace*{1.2\baselineskip}
+    \end{itemize}
+\end{multicols}
 
 
 \section{Exceptions}
@@ -88,11 +105,3 @@ The compiler supports the following control flow statements:
 Exceptions are partially supported by the compiler. If an exception is thrown from an expression or a statement, the exception will be propagated to the caller of the compiled function.
 
 The \texttt{try} statement is not supported, and it is not possible to perform any exception handling in the compiled code.
-
-
-
-
-
-% To create an equivalent machine code, numeric values should be represented as \texttt{Float64}, or \texttt{Any}\footnotemark[3]
-
-% \footnotetext[3]{The performance of arithmetic operations on different types may vary depending on the target CPU -- for example, on a 32-bit CPU without 64-bit float acceleration, work with small integer values will be significantly faster when the \texttt{Any} type is used instead of \texttt{Float64}.}

@@ -7,7 +7,7 @@ TIME_COLS = 2
 INIT_COL = 0
 
 INPUT_DIR = 'out/bench_raw'
-AVG_FILE = 'out/bench_avg.csv'
+INIT_FILE = 'out/bench_init.csv'
 
 
 def process_output(rel_path: str) -> None:
@@ -68,13 +68,13 @@ def process_output(rel_path: str) -> None:
         init_time_sum += float(row[INIT_COL])
 
     avg_init_time = init_time_sum / len(out_rows)
-    with open(AVG_FILE, 'a') as avg_file:
+    with open(INIT_FILE, 'a') as avg_file:
         avg_file.write(f'{rel_path[len(INPUT_DIR)+1:]:<25} {avg_init_time:.3f}\n')
 
 
 if __name__ == '__main__':
-    if os.path.exists(AVG_FILE):
-        os.remove(AVG_FILE)
+    if os.path.exists(INIT_FILE):
+        os.remove(INIT_FILE)
 
     for root, _, files in os.walk(INPUT_DIR):
         for file in files:
