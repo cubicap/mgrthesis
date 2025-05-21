@@ -5,7 +5,7 @@ The goal of this thesis is to implement a simple compiler for a subset of TypeSc
 
 \section{Requirements}
 
-The proposed compiler will be primarily used in resource constrained environments such as microcontrollers or single board computers. For this reason, the compiler must be small and resource efficient. It will be used as a part of the JavaScript runtime Jaculus (described in Section \ref{jaculus}).
+The proposed compiler will be primarily used in resource constrained environments such as microcontrollers or single board computers. For this reason, the compiler must be small and resource efficient. It will be used as a part of the JavaScript runtime environment Jaculus (described in Section \ref{jaculus}).
 
 Because the compiler should be simple, it will only perform compilation of selected parts of the input program. After compilation is completed, it will not do any further work during the execution of a program. The compilation will be performed at the level of individual functions. If multiple suitable functions are found in a single file, they will be compiled together and statically linked.
 
@@ -37,7 +37,7 @@ An overview of the architecture of the compiler is shown in Figure \ref{fig:arch
 
 Jaculus~\cite{jaculusthesis} is a platform for programming microcontrollers using JavaScript. It is divided into multiple libraries. The core library, \textit{Jaculus-machine}, provides a JavaScript runtime environment based on the QuickJS JavaScript engine~\cite{quickjs}, and implements a set of C++ abstractions around it. It also provides some core features for the runtime, such as an event loop\footnote{An event loop is a construct that realizes processing of events. Their processing is performed sequentially.} or libraries available in the JavaScript environment. Jaculus-machine can be used independently of the rest of Jaculus -- for example for embedding into other applications.
 
-Other Jaculus libraries realize communication between a JavaScript runtime running on a microcontroller and a host computer used by the programmer (e.g., for uploading new programs), and provide platform-specific libraries for using the peripherals of the microcontroller.
+Other Jaculus libraries realize communication between a JavaScript runtime environment running on a microcontroller and a host computer used by the programmer (e.g., for uploading new programs), and provide platform-specific libraries for using the peripherals of the microcontroller.
 
 This thesis focuses on extending the Jaculus-machine library with an ahead-of-time compiler for a subset of TypeScript.
 
@@ -77,7 +77,7 @@ Cwerg backend is primarily developed in conjunction with the Cwerg language~\cit
 
 Similarly to MIR, Cwerg provides an API for generating its intermediate representation. Functions in the generated machine code can be called using the calling convention native to current platform.
 
-The author of Cwerg advertises the backend to be suitable for use in JIT compilers. However, because the backend stores its in global data structures, which are not reset after compilation, it can be only used as a one-time, ahead-of-time compiler. This behavior makes it unsuitable for our use case because we want to be able to reset the runtime (and thus perform a new compilation) multiple times during the execution of a single process.
+The author of Cwerg advertises the backend to be suitable for use in JIT compilers. However, because the backend stores its in global data structures, which are not reset after compilation, it can be only used as a one-time, ahead-of-time compiler. This behavior makes it unsuitable for our use case because we want to be able to reset the runtime environment (and thus perform a new compilation) multiple times during the execution of a single process.
 
 
 \subsection{LLVM}

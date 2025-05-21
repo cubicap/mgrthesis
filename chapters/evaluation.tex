@@ -1,6 +1,6 @@
 \chapter{Evaluation}
 
-The main reason for adding a compiler into a JavaScript runtime is a potential increase in execution speed. This chapter evaluates the performance difference between using Jaculus-machine with, and without the newly added compiler.
+The main reason for adding a compiler into a JavaScript runtime environment is a potential increase in execution speed. This chapter evaluates the performance difference between using Jaculus-machine with, and without the newly added compiler.
 
 To measure the performance difference, we choose several benchmarks which aim to test different language constructs.
 
@@ -39,7 +39,7 @@ Source code for all benchmarks is available in the attached archive described in
 
 The execution times of the benchmarks are shown in Figures \ref{fig:fibRec}, \ref{fig:matmul}, and \ref{fig:line}. Average initialization times are shown in Table \ref{tab:init}.
 
-The results show that in compiler mode, the runtime outperforms the interpreter mode for larger inputs in all benchmarks. For large inputs, the performance difference in these benchmarks is by a factor of 6 to 14.
+The results show that in compiler mode, the runtime environment outperforms the interpreter mode for larger inputs in all benchmarks. For large inputs, the performance difference in these benchmarks is by a factor of 6 to 14.
 
 The downside of the compiler is a slower startup time. It is best visible in the Fibonacci benchmark where the startup time dominates the execution time for inputs smaller than 23. The effect is less pronounced in the other benchmarks, because their computational intensity increases faster even for smaller inputs. However, because the compiler is primarily intended for longer running programs, this will likely not affect the real performance much.
 
